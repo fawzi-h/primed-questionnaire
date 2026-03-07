@@ -1,0 +1,392 @@
+/* ── TreatmentSelection — Cinematic goal picker ─────────────── */
+/* Uses --primed-* tokens · featured hero row + 4-col grid        */
+
+/* ── Keyframes ─────────────────────────────────────────────── */
+
+@keyframes ts-heroIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes ts-cardIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes ts-checkPop {
+  0%   { transform: scale(0); }
+  70%  { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+@keyframes ts-accentBar {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+@keyframes ts-ctaBtnPop {
+  from { opacity: 0; transform: translateY(20px) scale(0.9); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── Layout ─────────────────────────────────────────────────── */
+
+.treatment-selection-wrapper {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  background: var(--primed-color-bg, #ffffff);
+  font-family: var(--primed-font-body, 'Stacksanstext', sans-serif);
+  color: var(--primed-color-text, #131313);
+  position: relative;
+}
+
+.treatment-selection-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px 100px;
+}
+
+/* ── Hero text entrance ────────────────────────────────────── */
+
+.treatment-selection-hero {
+  text-align: center;
+  margin-bottom: 32px;
+  animation: ts-heroIn 500ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.treatment-selection-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 100px;
+  background: var(--primed-color-primary-light, #e5ecec);
+  border: 1px solid var(--primed-color-fog, #E5ECEC);
+  font-family: var(--primed-font-mono, 'GeistMono', monospace);
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--primed-color-primary, #014548);
+  margin-bottom: 16px;
+}
+
+.treatment-selection-title {
+  font-size: 26px;
+  font-weight: 600;
+  color: var(--primed-color-primary, #014548);
+  letter-spacing: -0.5px;
+  line-height: 1.3;
+  margin: 0 0 8px;
+}
+
+.treatment-selection-subtitle {
+  font-family: var(--primed-font-mono, 'GeistMono', monospace);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--primed-color-primary, #014548);
+  opacity: 0.4;
+  margin: 0;
+}
+
+/* ── Grid ──────────────────────────────────────────────────── */
+
+.treatment-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  width: 100%;
+  max-width: 780px;
+}
+
+/* ── Card ──────────────────────────────────────────────────── */
+
+.treatment-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border-radius: 16px;
+  border: 2px solid var(--primed-color-fog, #E5ECEC);
+  background: var(--primed-color-bg, #ffffff);
+  cursor: pointer;
+  overflow: hidden;
+  font-family: inherit;
+  width: 100%;
+  text-align: left;
+  padding: 0;
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.35s ease,
+    transform 0.35s ease;
+  animation: ts-cardIn 400ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Stagger entrance — 60ms per card */
+.treatment-card:nth-child(1)  { animation-delay: 0ms; }
+.treatment-card:nth-child(2)  { animation-delay: 60ms; }
+.treatment-card:nth-child(3)  { animation-delay: 120ms; }
+.treatment-card:nth-child(4)  { animation-delay: 180ms; }
+.treatment-card:nth-child(5)  { animation-delay: 240ms; }
+.treatment-card:nth-child(6)  { animation-delay: 300ms; }
+.treatment-card:nth-child(7)  { animation-delay: 360ms; }
+.treatment-card:nth-child(8)  { animation-delay: 420ms; }
+.treatment-card:nth-child(9)  { animation-delay: 480ms; }
+.treatment-card:nth-child(10) { animation-delay: 540ms; }
+
+/* ── Hover — lift + layered shadow ─────────────────────────── */
+
+.treatment-card:hover {
+  border-color: var(--primed-color-focus, #43a6aa);
+  transform: translateY(-4px);
+  box-shadow:
+    0 4px 16px rgba(1, 69, 72, 0.10),
+    0 16px 60px rgba(1, 69, 72, 0.06);
+}
+
+/* ── Selected state ────────────────────────────────────────── */
+
+.treatment-card--selected {
+  border-color: var(--primed-color-primary, #014548);
+}
+
+/* Accent bar — scales from left across card bottom */
+.treatment-card-accent {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--primed-color-accent, #faf08c);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s ease;
+}
+
+.treatment-card--selected .treatment-card-accent {
+  animation: ts-accentBar 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Check circle — teal circle with gold checkmark */
+.treatment-card-check {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--primed-color-primary, #014548);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+  animation: ts-checkPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.treatment-card-check svg {
+  width: 14px;
+  height: 14px;
+  stroke: var(--primed-color-accent, #faf08c);
+  stroke-width: 2.5;
+  fill: none;
+}
+
+/* ── Card Image ────────────────────────────────────────────── */
+
+.treatment-card-image-wrap {
+  position: relative;
+  width: 100%;
+  height: 100px;
+  overflow: hidden;
+}
+
+
+.treatment-card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.6s ease;
+}
+
+/* Teal gradient overlay — unifies image color temperature */
+.treatment-card-image-wrap::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    rgba(0, 55, 57, 0.45) 0%,
+    rgba(0, 55, 57, 0.10) 50%,
+    transparent 100%
+  );
+  z-index: 1;
+  transition: background 0.3s ease;
+}
+
+/* Hover — cinematic zoom + teal tint */
+.treatment-card:hover .treatment-card-image {
+  transform: scale(1.06);
+}
+
+.treatment-card:hover .treatment-card-image-wrap::after {
+  background: linear-gradient(
+    to top,
+    rgba(0, 55, 57, 0.55) 0%,
+    rgba(0, 55, 57, 0.18) 50%,
+    rgba(0, 55, 57, 0.06) 100%
+  );
+}
+
+/* ── Card Label Area ───────────────────────────────────────── */
+
+.treatment-card-label-area {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 14px;
+  position: relative;
+}
+
+.treatment-card-label {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--primed-color-text, #131313);
+  line-height: 1.3;
+}
+
+
+/* ── Hover arrow — slides in from left ─────────────────────── */
+
+.treatment-card-arrow {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--primed-color-focus, #43a6aa);
+  opacity: 0;
+  transform: translateX(-6px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.treatment-card:hover .treatment-card-arrow {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* ── Bottom CTA Bar ────────────────────────────────────────── */
+
+.treatment-cta-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  justify-content: center;
+  padding: 16px 24px;
+  animation: ts-ctaBtnPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.treatment-cta-btn {
+  background: var(--primed-color-accent, #faf08c);
+  color: var(--primed-color-accent-text, #014548);
+  border: none;
+  border-radius: var(--primed-btn-radius, 100px);
+  padding: 12px 28px;
+  font-family: var(--primed-font-mono, 'GeistMono', monospace);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+.treatment-cta-btn:hover {
+  background: var(--primed-color-primary, #014548);
+  color: var(--primed-color-accent, #faf08c);
+}
+
+/* ── Unused (kept for compat) ──────────────────────────────── */
+
+.treatment-selection-logo {
+  display: none;
+}
+
+/* ── Responsive ────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .treatment-selection-container {
+    padding: 24px 16px 100px;
+  }
+
+  .treatment-selection-title {
+    font-size: 22px;
+  }
+
+  .treatment-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .treatment-card {
+    flex-direction: row;
+    height: 80px;
+  }
+
+  .treatment-card-image-wrap {
+    width: 100px;
+    height: 100%;
+    flex-shrink: 0;
+    order: 1;
+  }
+
+  .treatment-card-label-area {
+    padding: 10px 10px;
+    flex: 1;
+    order: 2;
+  }
+
+  .treatment-card-label {
+    font-size: 13px;
+  }
+
+  .treatment-card-check {
+    top: auto;
+    bottom: 8px;
+    right: 8px;
+    width: 24px;
+    height: 24px;
+  }
+
+  .treatment-card-accent {
+    bottom: 0;
+    left: 0;
+    right: auto;
+    top: 0;
+    width: 3px;
+    height: auto;
+    transform: scaleY(0);
+    transform-origin: bottom;
+  }
+
+  .treatment-card--selected .treatment-card-accent {
+    animation-name: ts-accentBarVertical;
+  }
+
+  .treatment-cta-btn {
+    width: 100%;
+    text-align: center;
+    padding: 14px 24px;
+  }
+}
+
+@keyframes ts-accentBarVertical {
+  from { transform: scaleY(0); }
+  to   { transform: scaleY(1); }
+}

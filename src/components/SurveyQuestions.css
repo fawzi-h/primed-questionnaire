@@ -1,0 +1,626 @@
+/* ── SurveyQuestions — Typeform-style quiz flow ──────────────── */
+/* Scoped to .sq-* classes · Uses --primed-* design tokens        */
+
+/* ── Keyframes ──────────────────────────────────────────────── */
+
+@keyframes sq-slideIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes sq-chipIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes sq-fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Layout ─────────────────────────────────────────────────── */
+
+.sq-wrapper {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  background: var(--primed-color-bg, #ffffff);
+  font-family: var(--primed-font-body, 'Stacksanstext', sans-serif);
+  color: var(--primed-color-text, #131313);
+}
+
+.sq-progress-wrapper {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--primed-color-bg, #ffffff);
+  padding: 20px 24px 0;
+}
+
+.sq-content-area {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px 140px; /* bottom padding clears fixed footer */
+}
+
+.sq-question-container {
+  width: 100%;
+  max-width: 600px;
+  animation: sq-slideIn 400ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ── Progress Bar ───────────────────────────────────────────── */
+
+.sq-progress {
+  max-width: 600px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.sq-progress-bar {
+  height: 3px;
+  background: var(--primed-color-fog, #E5ECEC);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.sq-progress-fill {
+  height: 100%;
+  background: var(--primed-color-accent, #faf08c);
+  border-radius: 3px;
+  transition: width 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Dot Track ──────────────────────────────────────────────── */
+
+.sq-dot-track {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 0 16px;
+  overflow-x: auto;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.sq-dot-track::-webkit-scrollbar { display: none; }
+
+.sq-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 6px;
+  background: var(--primed-color-fog, #E5ECEC);
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+}
+
+.sq-dot--done {
+  background: var(--primed-color-focus, #43a6aa);
+}
+
+.sq-dot--active {
+  width: 20px;
+  border-radius: 10px;
+  background: var(--primed-color-primary, #014548);
+}
+
+.sq-dot--future {
+  cursor: default;
+}
+
+/* ── Question Hierarchy ─────────────────────────────────────── */
+
+.sq-section-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 100px;
+  background: var(--primed-color-primary-light, #e5ecec);
+  border: 1px solid var(--primed-color-fog, #E5ECEC);
+  font-family: var(--primed-font-mono, 'GeistMono', monospace);
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--primed-color-primary, #014548);
+  margin-bottom: 16px;
+  animation: sq-fadeIn 300ms ease both;
+}
+
+.sq-question-number {
+  font-family: var(--primed-font-mono, 'GeistMono', monospace);
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--primed-color-focus, #43a6aa);
+  margin-bottom: 12px;
+}
+
+.sq-question-text {
+  font-size: 26px;
+  font-weight: 600;
+  color: var(--primed-color-primary, #014548);
+  letter-spacing: -0.5px;
+  line-height: 1.3;
+  margin: 0 0 8px;
+}
+
+.sq-subtitle {
+  font-family: var(--primed-font-mono, 'GeistMono', monospace);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--primed-color-primary, #014548);
+  opacity: 0.4;
+  margin: 0;
+}
+
+.sq-answer-area {
+  margin-top: 28px;
+}
+
+/* ── MCQ Radio Cards ────────────────────────────────────────── */
+
+.sq-mcq-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sq-mcq-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 2px solid var(--primed-color-fog, #E5ECEC) !important;
+  background: var(--primed-color-bg, #ffffff);
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.15s ease;
+  animation: sq-chipIn 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--primed-color-text, #131313);
+  text-align: left;
+  width: 100%;
+}
+
+.sq-mcq-card:hover {
+  border-color: var(--primed-color-focus, #43a6aa) !important;
+}
+
+.sq-mcq-card--selected {
+  border-color: var(--primed-color-primary, #014548) !important;
+  background: var(--primed-color-primary-light, #e5ecec);
+}
+
+.sq-mcq-radio {
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--primed-color-fog, #E5ECEC);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.2s ease;
+}
+
+.sq-mcq-card--selected .sq-mcq-radio {
+  border-color: var(--primed-color-primary, #014548);
+}
+
+.sq-mcq-radio-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--primed-color-primary, #014548);
+  animation: sq-fadeIn 150ms ease both;
+}
+
+/* ── Multi-Select Chips ─────────────────────────────────────── */
+
+.sq-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.sq-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  border-radius: 12px;
+  border: 2px solid var(--primed-color-fog, #E5ECEC) !important;
+  background: var(--primed-color-bg, #ffffff);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  animation: sq-chipIn 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--primed-color-text, #131313);
+}
+
+.sq-chip:hover {
+  border-color: var(--primed-color-focus, #43a6aa) !important;
+}
+
+.sq-chip--selected {
+  background: var(--primed-color-primary, #014548);
+  border-color: var(--primed-color-primary, #014548) !important;
+  color: var(--primed-color-cream, #F9F4EB);
+}
+
+.sq-chip-checkbox {
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  border-radius: 5px;
+  border: 2px solid var(--primed-color-fog, #E5ECEC);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.sq-chip--selected .sq-chip-checkbox {
+  background: var(--primed-color-accent, #faf08c);
+  border-color: var(--primed-color-accent, #faf08c);
+}
+
+.sq-chip-other-input {
+  width: 100%;
+  margin-top: 12px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 2px solid var(--primed-color-fog, #E5ECEC);
+  font-size: 16px;
+  font-family: var(--primed-font-body, 'Stacksanstext', sans-serif);
+  color: var(--primed-color-text, #131313);
+  background: var(--primed-color-bg, #ffffff);
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.sq-chip-other-input:focus {
+  border-color: var(--primed-color-focus, #43a6aa);
+}
+
+/* ── Form Inputs ────────────────────────────────────────────── */
+
+.sq-input {
+  width: 100%;
+  padding: 16px 20px;
+  border-radius: 14px;
+  border: 2px solid var(--primed-color-fog, #E5ECEC);
+  font-size: 18px;
+  font-family: var(--primed-font-body, 'Stacksanstext', sans-serif);
+  color: var(--primed-color-text, #131313);
+  background: var(--primed-color-bg, #ffffff);
+  outline: none;
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+}
+
+.sq-input:focus {
+  border-color: var(--primed-color-focus, #43a6aa);
+}
+
+.sq-input::placeholder {
+  color: var(--primed-color-text-muted, rgba(19, 19, 19, 0.55));
+}
+
+.sq-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sq-textarea {
+  width: 100%;
+  padding: 16px 20px;
+  border-radius: 14px;
+  border: 2px solid var(--primed-color-fog, #E5ECEC);
+  font-size: 17px;
+  font-family: var(--primed-font-body, 'Stacksanstext', sans-serif);
+  color: var(--primed-color-text, #131313);
+  background: var(--primed-color-bg, #ffffff);
+  outline: none;
+  resize: vertical;
+  min-height: 140px;
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+}
+
+.sq-textarea:focus {
+  border-color: var(--primed-color-focus, #43a6aa);
+}
+
+.sq-textarea::placeholder {
+  color: var(--primed-color-text-muted, rgba(19, 19, 19, 0.55));
+}
+
+.sq-field-description {
+  font-size: 13px;
+  color: var(--primed-color-text-muted, rgba(19, 19, 19, 0.55));
+  margin-top: 8px;
+}
+
+.sq-field-error {
+  font-size: 13px;
+  color: var(--primed-color-error, #df2d3e);
+  margin-top: 6px;
+}
+
+/* ── Medicare Composite ─────────────────────────────────────── */
+
+.sq-medicare-group {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.sq-medicare-field-label {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--primed-color-primary, #014548);
+  margin-bottom: 10px;
+}
+
+.sq-medicare-image {
+  max-width: 210px;
+  border-radius: 8px;
+}
+
+.sq-medicare-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sq-medicare-checkbox-row input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--primed-color-checkbox, #0d9488);
+  cursor: pointer;
+}
+
+.sq-medicare-checkbox-row label {
+  font-size: 14px;
+  color: var(--primed-color-text, #131313);
+  cursor: pointer;
+}
+
+.sq-ihi-section {
+  padding-top: 8px;
+  border-top: 1px solid var(--primed-color-fog, #E5ECEC);
+}
+
+.sq-ihi-description {
+  font-size: 14px;
+  color: var(--primed-color-text-subtle, #6b7c82);
+  margin-bottom: 10px;
+}
+
+/* ── Consent Step ───────────────────────────────────────────── */
+
+.sq-consent-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.sq-consent-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--primed-color-fog, #E5ECEC);
+  cursor: pointer;
+}
+
+.sq-consent-row:first-child {
+  border-top: 1px solid var(--primed-color-fog, #E5ECEC);
+}
+
+.sq-consent-checkbox {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  border-radius: 7px;
+  border: 2px solid var(--primed-color-fog, #E5ECEC);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.sq-consent-checkbox--checked {
+  background: var(--primed-color-primary, #014548);
+  border-color: var(--primed-color-primary, #014548);
+}
+
+.sq-consent-text {
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--primed-color-text, #131313);
+  cursor: pointer;
+}
+
+/* ── Footer ─────────────────────────────────────────────────── */
+
+.sq-footer-wrapper {
+  position: sticky;
+  bottom: 0;
+  z-index: 15;
+  background: var(--primed-color-bg, #ffffff);
+  border-top: 1px solid var(--primed-color-fog, #E5ECEC);
+}
+
+.sq-footer {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sq-back-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 10px;
+  border-radius: 12px;
+  color: var(--primed-color-text, #131313);
+  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sq-back-btn:hover {
+  background: var(--primed-color-primary-light, #e5ecec);
+}
+
+.sq-back-btn--hidden {
+  visibility: hidden;
+}
+
+.sq-enter-hint {
+  font-family: var(--primed-font-mono, 'GeistMono', monospace);
+  font-size: 12px;
+  color: var(--primed-color-text-muted, rgba(19, 19, 19, 0.55));
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  animation: sq-fadeIn 300ms ease 500ms both;
+}
+
+.sq-enter-hint--hidden {
+  visibility: hidden;
+}
+
+.sq-kbd {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--primed-color-fog, #E5ECEC);
+  background: var(--primed-color-bg-subtle, #f8f9fa);
+  font-family: var(--primed-font-mono, 'GeistMono', monospace);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--primed-color-text, #131313);
+  line-height: 1.6;
+}
+
+.sq-continue-btn {
+  background: var(--primed-color-accent, #faf08c);
+  color: var(--primed-color-accent-text, #014548);
+  border: none;
+  border-radius: var(--primed-btn-radius, 100px);
+  padding: 12px 28px;
+  font-family: var(--primed-font-mono, 'GeistMono', monospace);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+.sq-continue-btn:hover:not(:disabled) {
+  background: var(--primed-color-primary, #014548);
+  color: var(--primed-color-accent, #faf08c);
+}
+
+.sq-continue-btn:disabled {
+  opacity: 0.25;
+  pointer-events: none;
+}
+
+/* ── Submit Error ───────────────────────────────────────────── */
+
+.sq-submit-error {
+  text-align: center;
+  color: var(--primed-color-error, #df2d3e);
+  font-size: 14px;
+  margin-top: 16px;
+}
+
+/* ── Loading State ──────────────────────────────────────────── */
+
+.sq-loading {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  color: var(--primed-color-text-muted, rgba(19, 19, 19, 0.55));
+  font-family: var(--primed-font-mono, 'GeistMono', monospace);
+  font-size: 13px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+/* ── Responsive ─────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .sq-content-area {
+    padding: 24px 16px 120px;
+  }
+
+  .sq-progress-wrapper {
+    padding: 16px 16px 0;
+  }
+
+  .sq-question-text {
+    font-size: 22px;
+  }
+
+  .sq-mcq-card {
+    padding: 14px;
+    font-size: 15px;
+  }
+
+  .sq-chip {
+    padding: 10px 14px;
+    font-size: 14px;
+  }
+
+  .sq-input {
+    padding: 14px 16px;
+    font-size: 16px;
+  }
+
+  .sq-textarea {
+    padding: 14px 16px;
+    font-size: 16px;
+  }
+
+  .sq-footer {
+    padding: 12px 16px;
+  }
+
+  .sq-enter-hint {
+    display: none;
+  }
+}

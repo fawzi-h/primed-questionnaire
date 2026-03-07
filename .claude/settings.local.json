@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__Claude_Preview__preview_start",
+      "Bash(command -v npm)",
+      "Bash(netstat -ano)",
+      "Bash(tasklist /FI \"PID eq 30884\")",
+      "WebFetch(domain:www.primedclinic.com.au)",
+      "WebFetch(domain:uploads-ssl.webflow.com)",
+      "WebFetch(domain:cdn.prod.website-files.com)",
+      "Bash(curl -s \"https://cdn.prod.website-files.com/6981710e75497676ffbaf22b/css/primed-clinic.webflow.shared.1773752de.css\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"https://cdn.prod.website-files.com/6981710e75497676ffbaf22b/69a48f47624b07619d0f3dfd_medicare-irn.png\")",
+      "Bash(xargs wc -l)",
+      "Bash(npm run build)",
+      "Bash(node build.js)",
+      "Bash(npx kill-port 5180)",
+      "Bash(ls:*)",
+      "Bash(npx vite:*)",
+      "Bash(grep:*)",
+      "Bash(npx react-scripts:*)",
+      "Bash(node:*)"
+    ]
+  }
+}
