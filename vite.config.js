@@ -121,7 +121,6 @@ export default defineConfig(({ mode }) => {
 
     server: {
       port: parseInt(process.env.PORT || "5180"),
-      strictPort: true,
     },
 
     define: defines,

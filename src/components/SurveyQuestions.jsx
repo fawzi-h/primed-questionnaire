@@ -1,20 +1,11 @@
-/**
- * SurveyQuestions — Typeform-style multi-step health questionnaire.
- *
- * Render layer rewritten for single-focus, vertically-centered layout
- * with slide-in animations, dot-track navigation, and Primed design tokens.
- * All business logic, validation, and API calls are preserved unchanged.
- */
 import React, { useState, useRef, useEffect } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { sanitizeInput } from "../Auth/Sanitizer";
 import "react-phone-input-2/lib/style.css";
 import "flag-icon-css/css/flag-icons.min.css";
-import "..//loadGoogleMaps";
 import api from "../Api/AuthApi";
 import { fetchQuestionsOnce } from "../questionsCache";
 import { useSurveyConfig } from "../SurveyConfig";
-import usePlacesAutocomplete, { getGeocode } from "use-places-autocomplete";
 import { X } from "lucide-react";
 import getBaseUrl from "../Api/BaseUrl";
 import { validateRedirectUrl, validateImageUrl } from "../utils/validation";
@@ -24,47 +15,67 @@ import "react-datepicker/dist/react-datepicker.css";
 import { format } from "date-fns";
 import "./SurveyQuestions.css";
 
-import {
-  Combobox,
-  ComboboxInput,
-  ComboboxPopover,
-  ComboboxList,
-  ComboboxOption,
-} from "@reach/combobox";
-import "@reach/combobox/styles.css";
+const LOCAL_STORAGE_KEY = "primed_survey";
 
-const LOCAL_STORAGE_KEY =
-  process.env.NODE_ENV === "production"
-    ? window.location.hostname
-    : process.env.REACT_APP_SURVEY_LOCAL_STORAGE_KEY;
+const DEBUG = false;
+const DEBUG_PREFIX = "[SurveyQuestions]";
 
-/* ── Inline SVG helpers ───────────────────────────────────────── */
+const debug = (...args) => {
+  if (DEBUG) console.log(DEBUG_PREFIX, ...args);
+};
+
+const debugError = (...args) => {
+  if (DEBUG) console.error(DEBUG_PREFIX, ...args);
+};
 
 const BackArrow = () => (
-  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+  <svg
+    width="20"
+    height="20"
+    viewBox="0 0 20 20"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      d="M12.5 15L7.5 10L12.5 5"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
   </svg>
 );
 
 const CheckIcon = ({ size = 10 }) => (
-  <svg width={size} height={size} viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M1.5 5.5L4 8L8.5 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 10 10"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      d="M1.5 5.5L4 8L8.5 2"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
   </svg>
 );
 
 const SurveyQuestions = () => {
-  /* ── State (unchanged) ──────────────────────────────────────── */
+  const { id, treatmentName } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+
   const [surveyLoading, setSurveyLoading] = useState(false);
   const [answers, setAnswers] = useState({});
   const [questions, setQuestions] = useState([]);
-  const [currentQuestion, setCurrentQuestion] = useState(() => {
-    const saved = sessionStorage.getItem(`${LOCAL_STORAGE_KEY}_currentQuestion`);
-    return saved ? parseInt(saved, 10) : 0;
-  });
+  const [currentQuestion, setCurrentQuestion] = useState(0);
+
   const [showAlert, setShowAlert] = useState(false);
   const [submitError, setSubmitError] = useState("");
-  // eslint-disable-next-line
-  const [showQuestionnaire, setShowQuestionnaire] = useState(false);
   const [formSubmitted] = useState(true);
   const [surveySubmitted, setSurveySubmitted] = useState(false);
   const [surveySaved, setSurveySaved] = useState(false);
@@ -76,229 +87,665 @@ const SurveyQuestions = () => {
   const [errors, setErrors] = useState({});
   const [isVisible, setIsVisible] = useState(false);
   const [otherTexts, setOtherTexts] = useState({});
-  const { id, treatmentName } = useParams();
+  const [resolvedTreatment, setResolvedTreatment] = useState({
+    treatmentName: "",
+    treatmentId: "",
+    hasTreatment: false,
+  });
+
   const [userId] = useState(() => {
     const sessionData = sessionStorage.getItem("sessionData");
+    debug("init userId", {
+      sessionDataRaw: sessionData,
+      sessionUserId: sessionStorage.getItem("userId"),
+    });
+
     if (sessionData) {
       try {
         const parsed = JSON.parse(sessionData);
         if (parsed.userId) return String(parsed.userId);
-      } catch {}
+      } catch (error) {
+        debugError("init userId parse error", error);
+      }
     }
+
     return sessionStorage.getItem("userId") || null;
   });
-  const [token, setToken] = useState(null);
 
-  /* ── New state for animations ───────────────────────────────── */
+  const [token, setToken] = useState(null);
   const [animKey, setAnimKey] = useState(0);
   const autoAdvanceRef = useRef(false);
-
-  /* ── Refs & config (unchanged) ──────────────────────────────── */
-  const navigate = useNavigate();
-  const navigateRef = useRef(navigate);
-  useEffect(() => { navigateRef.current = navigate; }, [navigate]);
-  const location = useLocation();
-  const { submitBtnClass, saveBtnClass, backBtnClass, navBtnClass, inputClass, labelClass, medicareCardImageUrl, dashboardUrl } = useSurveyConfig();
-  const showPopup = () => setIsVisible(true);
-  const hidePopup = () => setIsVisible(false);
   const dropdownRef = useRef(null);
 
-  const generateToken = () => crypto.randomUUID();
+  const formatDateInputValue = (date) => {
+    const year = date.getFullYear();
+    const month = `${date.getMonth() + 1}`.padStart(2, "0");
+    const day = `${date.getDate()}`.padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
 
-  /* ── Effects (unchanged) ────────────────────────────────────── */
+  const getAdultDobMaxDate = () => {
+    const cutoff = new Date();
+    cutoff.setFullYear(cutoff.getFullYear() - 18);
+    return formatDateInputValue(cutoff);
+  };
+
+  const isAdultDob = (value) => {
+    if (!value) return false;
+
+    const [year, month, day] = value.split("-").map(Number);
+    if (!year || !month || !day) return false;
+
+    const selectedDate = new Date(year, month - 1, day);
+    if (Number.isNaN(selectedDate.getTime())) return false;
+
+    return value <= getAdultDobMaxDate();
+  };
+
+  const scrollViewportToTop = () => {
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    });
+  };
+
+  const { medicareCardImageUrl, dashboardUrl } = useSurveyConfig();
+
+  const clearSurveySession = (currentToken = token) => {
+    sessionStorage.removeItem("treatment_plan");
+    sessionStorage.removeItem("treatment_id");
+    sessionStorage.removeItem("treatmentName");
+    sessionStorage.removeItem("treatmentId");
+    sessionStorage.removeItem(LOCAL_STORAGE_KEY);
+    if (currentToken) {
+      sessionStorage.removeItem(`${LOCAL_STORAGE_KEY}_${currentToken}`);
+    }
+  };
+
+  const showPopup = () => setIsVisible(true);
+  const hidePopup = () => setIsVisible(false);
+
+  const getResolvedTreatment = () => {
+    const params = new URLSearchParams(location.search);
+
+    const queryTreatmentName = params.get("treatment_plan") || "";
+    const queryTreatmentId = params.get("treatment_id") || "";
+
+    const sessionTreatmentName =
+      sessionStorage.getItem("treatment_plan") ||
+      sessionStorage.getItem("treatmentName") ||
+      "";
+
+    const sessionTreatmentId =
+      sessionStorage.getItem("treatment_id") ||
+      sessionStorage.getItem("treatmentId") ||
+      "";
+
+    const resolvedTreatmentName =
+      queryTreatmentName || treatmentName || sessionTreatmentName || "";
+
+    const resolvedTreatmentId =
+      queryTreatmentId || id || sessionTreatmentId || "";
+
+    const result = {
+      treatmentName: resolvedTreatmentName,
+      treatmentId: resolvedTreatmentId,
+      hasTreatment: Boolean(resolvedTreatmentName && resolvedTreatmentId),
+    };
+
+    debug("getResolvedTreatment()", {
+      locationSearch: location.search,
+      routeId: id,
+      routeTreatmentName: treatmentName,
+      queryTreatmentName,
+      queryTreatmentId,
+      sessionTreatmentName,
+      sessionTreatmentId,
+      result,
+    });
+
+    return result;
+  };
+
+  const generateToken = () => {
+    const generated = crypto.randomUUID();
+    debug("generateToken()", generated);
+    return generated;
+  };
+
+  useEffect(() => {
+    debug("mount");
+    debug("env", {
+      LOCAL_STORAGE_KEY,
+      pathname: location.pathname,
+      search: location.search,
+      href: window.location.href,
+      routeId: id,
+      routeTreatmentName: treatmentName,
+    });
+
+    debug("sessionStorage snapshot on mount", {
+      treatment_plan: sessionStorage.getItem("treatment_plan"),
+      treatment_id: sessionStorage.getItem("treatment_id"),
+      treatmentName: sessionStorage.getItem("treatmentName"),
+      treatmentId: sessionStorage.getItem("treatmentId"),
+      sessionData: sessionStorage.getItem("sessionData"),
+      userId: sessionStorage.getItem("userId"),
+    });
+
+    return () => {
+      debug("unmount");
+    };
+  }, [id, location.pathname, location.search, treatmentName]);
+
+  useEffect(() => {
+    debug("route changed", {
+      pathname: location.pathname,
+      search: location.search,
+      id,
+      treatmentName,
+    });
+  }, [location.pathname, location.search, id, treatmentName]);
+
+  useEffect(() => {
+    debug("state changed", {
+      token,
+      currentQuestion,
+      questionsLength: questions.length,
+      progress,
+      showConsentStep,
+      surveySubmitted,
+      surveySaved,
+      showAlert,
+      showUnderAgeMessage,
+      resolvedTreatment,
+    });
+  }, [
+    token,
+    currentQuestion,
+    questions.length,
+    progress,
+    showConsentStep,
+    surveySubmitted,
+    surveySaved,
+    showAlert,
+    showUnderAgeMessage,
+    resolvedTreatment,
+  ]);
+
+  useEffect(() => {
+    debug("current question object", {
+      currentQuestion,
+      currentQuestionKey: questions[currentQuestion]?.key,
+      currentQuestionQuestion: questions[currentQuestion]?.question,
+      currentQuestionExists: Boolean(questions[currentQuestion]),
+    });
+  }, [currentQuestion, questions]);
+
+  useEffect(() => {
+    debug("answers changed", {
+      keysCount: Object.keys(answers).length,
+      sampleKeys: Object.keys(answers).slice(0, 10),
+    });
+  }, [answers]);
+
+  useEffect(() => {
+    debug("consent step changed", {
+      showConsentStep,
+      consentChecked,
+    });
+  }, [showConsentStep, consentChecked]);
+
+  useEffect(() => {
+    if (questions.length > 0) {
+      debug(
+        "questions keys",
+        questions.map((q, index) => ({
+          index,
+          key: q.key,
+          type: q.type,
+          question: q.question,
+        })),
+      );
+    }
+  }, [questions]);
+
+  useEffect(() => {
+    debug("resolve treatment effect:start");
+    const resolved = getResolvedTreatment();
+
+    setResolvedTreatment(resolved);
+    debug("resolve treatment effect:setResolvedTreatment", resolved);
+
+    if (resolved.treatmentName) {
+      sessionStorage.setItem("treatment_plan", resolved.treatmentName);
+      sessionStorage.setItem("treatmentName", resolved.treatmentName);
+    }
+
+    if (resolved.treatmentId) {
+      sessionStorage.setItem("treatment_id", resolved.treatmentId);
+      sessionStorage.setItem("treatmentId", resolved.treatmentId);
+    }
+
+    debug("resolve treatment effect:end", {
+      treatment_plan: sessionStorage.getItem("treatment_plan"),
+      treatment_id: sessionStorage.getItem("treatment_id"),
+      treatmentName: sessionStorage.getItem("treatmentName"),
+      treatmentId: sessionStorage.getItem("treatmentId"),
+    });
+  }, [location.search, treatmentName, id]);
 
   useEffect(() => {
     let isMounted = true;
+    debug("fetchQuestionsOnce effect:start", { formSubmitted });
+
     fetchQuestionsOnce()
       .then((data) => {
+        debug("fetchQuestionsOnce success", {
+          isMounted,
+          count: Array.isArray(data) ? data.length : "not-array",
+        });
+
         if (!isMounted) return;
+
         setQuestions(data);
+
         setAnswers((prev) => {
           if (Object.keys(prev).length > 0) return prev;
-          return data.reduce((acc, q) => { acc[q.key] = ""; return acc; }, {});
+
+          const seeded = data.reduce((acc, q) => {
+            acc[q.key] = "";
+            return acc;
+          }, {});
+
+          return seeded;
         });
       })
-      .catch((error) => { console.error(error); });
-    return () => { isMounted = false; };
-  }, []); // eslint-disable-line
+      .catch((error) => {
+        debugError("fetchQuestionsOnce error", error);
+      });
+
+    return () => {
+      isMounted = false;
+      debug("fetchQuestionsOnce cleanup");
+    };
+  }, [formSubmitted]);
 
   useEffect(() => {
-    if (token) {
-      sessionStorage.setItem(
-        `${LOCAL_STORAGE_KEY}_${token}`,
-        JSON.stringify({ answers, currentQuestion, timestamp: Date.now() })
-      );
+    if (!token) {
+      debug("persist progress skipped because token is not set");
+      return;
     }
+
+    const key = `${LOCAL_STORAGE_KEY}_${token}`;
+    const payload = {
+      answers,
+      currentQuestion,
+      timestamp: Date.now(),
+    };
+
+    sessionStorage.setItem(key, JSON.stringify(payload));
+    debug("persisted progress", {
+      key,
+      currentQuestion,
+      answersKeys: Object.keys(answers).length,
+    });
   }, [token, answers, currentQuestion]);
 
-  const {
-    ready,
-    value,
-    suggestions: { status: suggestionsStatus, data: suggestionsData },
-    setValue,
-    clearSuggestions,
-  } = usePlacesAutocomplete({
-    callbackName: "initMap",
-    requestOptions: { types: ["address"], componentRestrictions: { country: "au" } },
-    debounce: 300,
-  });
-
   const TREATMENT_QUESTION_KEYS = [
-    "anti-ageing-vitality", "cognitive-health-performance", "gut-health-immunity",
-    "injury-repair-recovery", "muscle-strength-building", "sexual-health",
-    "skin-care", "weight-loss-weight-management", "womens-health"
+    "anti-ageing-vitality",
+    "cognitive-health-performance",
+    "gut-health-immunity",
+    "injury-repair-recovery",
+    "muscle-strength-building",
+    "sexual-health",
+    "skin-care",
+    "weight-loss-weight-management",
+    "womens-health",
   ];
 
   const isQuestionVisible = (index, ans = answers) => {
     if (!questions[index]) return true;
+
     const key = questions[index].key;
+
     if (key === "pregnancy_status" && ans.sex_at_birth === "Male") return false;
-    if (key === "family_history_details" && ans.has_family_history !== "Yes") return false;
-    if (key === "allergies_details" && ans.has_allergies !== "Yes") return false;
-    if (key === "additional_info_details" && ans.has_additional_info !== "Yes") return false;
-    if (key === "taken_peptides_hormone_therapy" && ans.has_taken_peptides_hormone_therapy !== "Yes") return false;
-    if (key === "medicare_expiry" || key === "individual_reference_number") return false;
+    if (key === "family_history_details" && ans.has_family_history !== "Yes")
+      return false;
+    if (key === "allergies_details" && ans.has_allergies !== "Yes")
+      return false;
+    if (key === "additional_info_details" && ans.has_additional_info !== "Yes")
+      return false;
+    if (
+      key === "taken_peptides_hormone_therapy" &&
+      ans.has_taken_peptides_hormone_therapy !== "Yes"
+    )
+      return false;
+    if (key === "medicare_expiry" || key === "individual_reference_number")
+      return false;
     if (key === "consent_provided") return false;
+
     if (TREATMENT_QUESTION_KEYS.includes(key)) {
-      const slug = treatmentName || sessionStorage.getItem("treatment_plan") || "";
+      const slug =
+        resolvedTreatment.treatmentName ||
+        treatmentName ||
+        sessionStorage.getItem("treatment_plan") ||
+        sessionStorage.getItem("treatmentName") ||
+        "";
+
       const expectedKey = TREATMENT_QUESTION_MAP[slug];
       if (key !== expectedKey) return false;
     }
+
     return true;
   };
 
+  // Returns the visible question indices reordered so the treatment-specific
+  // question always appears immediately before "referral_source", which is
+  // always last among the regular questions (consent is the final step).
+  const getOrderedVisible = (ans = answers) => {
+    const raw = questions
+      .map((_, i) => i)
+      .filter((i) => isQuestionVisible(i, ans));
+    const treatmentQs = raw.filter((i) =>
+      TREATMENT_QUESTION_KEYS.includes(questions[i]?.key),
+    );
+    const referralIdx = raw.find((i) => questions[i]?.key === "referral_source");
+    const others = raw.filter(
+      (i) =>
+        !TREATMENT_QUESTION_KEYS.includes(questions[i]?.key) &&
+        questions[i]?.key !== "referral_source",
+    );
+    return [
+      ...others,
+      ...treatmentQs,
+      ...(referralIdx !== undefined ? [referralIdx] : []),
+    ];
+  };
+
   useEffect(() => {
+    if (questions.length > 0) {
+      const visibleIndices = questions
+        .map((_, i) => i)
+        .filter((i) => isQuestionVisible(i));
+
+      debug("visible question indices recalculated", {
+        currentQuestion,
+        visibleIndices,
+        visibleKeys: visibleIndices.map((i) => questions[i]?.key),
+      });
+    }
+  }, [questions, answers, resolvedTreatment, currentQuestion, treatmentName]);
+
+  useEffect(() => {
+    debug("token/restore effect:start", {
+      locationPathname: location.pathname,
+      locationSearch: location.search,
+      questionsLength: questions.length,
+    });
+
     const params = new URLSearchParams(location.search);
     let currentToken = params.get("token");
+
     if (!currentToken) {
       currentToken = generateToken();
-      navigate(`?token=${currentToken}`, { replace: true });
+      const nextParams = new URLSearchParams(location.search);
+      nextParams.set("token", currentToken);
+
+      navigate(`${location.pathname}?${nextParams.toString()}`, {
+        replace: true,
+      });
     }
+
     setToken(currentToken);
-    const savedData = sessionStorage.getItem(`${LOCAL_STORAGE_KEY}_${currentToken}`);
+
+    const savedKey = `${LOCAL_STORAGE_KEY}_${currentToken}`;
+    const savedData = sessionStorage.getItem(savedKey);
+
     if (savedData) {
       try {
-        const { answers: savedAnswers, currentQuestion: savedQ } = JSON.parse(savedData);
-        setAnswers((prev) => ({ ...prev, ...savedAnswers }));
-        setCurrentQuestion(savedQ || 0);
-        setProgress(((savedQ + 1) / questions.length) * 100);
+        const parsedData = JSON.parse(savedData);
+        const { answers: savedAnswers, currentQuestion: savedCurrentQuestion } =
+          parsedData;
+
+        setAnswers((prevAnswers) => ({
+          ...prevAnswers,
+          ...savedAnswers,
+        }));
+
+        const nextQuestion =
+          typeof savedCurrentQuestion === "number"
+            ? Math.max(savedCurrentQuestion, 0)
+            : 0;
+
+        setCurrentQuestion(nextQuestion);
+        setProgress(
+          questions.length ? ((nextQuestion + 1) / questions.length) * 100 : 0,
+        );
       } catch (error) {
-        console.error("Error parsing saved quiz data:", error);
+        debugError("token/restore effect:JSON parse error", error);
       }
+    } else {
+      setCurrentQuestion(0);
+      setProgress(questions.length ? (1 / questions.length) * 100 : 0);
     }
-  }, [location, navigate, questions.length]);
+
+    debug("token/restore effect:end");
+  }, [location.search, location.pathname, navigate, questions.length]);
 
   useEffect(() => {
     const prefix = `${LOCAL_STORAGE_KEY}_`;
+
     for (let i = sessionStorage.length - 1; i >= 0; i--) {
       const key = sessionStorage.key(i);
       if (key && key.startsWith(prefix)) {
         try {
-          const { timestamp } = JSON.parse(sessionStorage.getItem(key));
-          if (Date.now() - timestamp > 86400000) sessionStorage.removeItem(key);
-        } catch { sessionStorage.removeItem(key); }
+          const raw = sessionStorage.getItem(key);
+          const { timestamp } = JSON.parse(raw);
+          const age = Date.now() - timestamp;
+
+          if (age > 86400000) {
+            sessionStorage.removeItem(key);
+          }
+        } catch (error) {
+          debugError("stale cleanup:removing invalid key", { key, error });
+          sessionStorage.removeItem(key);
+        }
       }
     }
   }, []);
 
   useEffect(() => {
-    return () => { sessionStorage.removeItem("sessionData"); };
+    return () => {
+      debug("cleanup removing sessionData on location effect cleanup");
+      sessionStorage.removeItem("sessionData");
+    };
   }, [location]);
 
   useEffect(() => {
     if (!surveySubmitted) return;
+
     const fallback = `${getBaseUrl()}/patient`;
     const target = validateRedirectUrl(dashboardUrl, getBaseUrl()) || fallback;
-    const timer = setTimeout(() => { window.location.href = target; }, 5000);
+
+    const timer = setTimeout(() => {
+      window.location.href = target;
+    }, 5000);
+
     return () => clearTimeout(timer);
-  }, [surveySubmitted, dashboardUrl]); // eslint-disable-line
+  }, [surveySubmitted, dashboardUrl]);
 
-  /* ── Enable autoAdvance after first render ──────────────────── */
-  useEffect(() => { autoAdvanceRef.current = true; }, []);
-
-  /* ── Enter key listener ─────────────────────────────────────── */
   useEffect(() => {
-    const onKey = (e) => {
-      if (e.key !== "Enter" || showConsentStep) return;
-      const q = questions[currentQuestion];
-      if (!q) return;
-      // Don't Enter-advance auto-advancing MCQs (≤3 choices)
-      if (q.type === "MCQs" && q.choices && q.choices.length <= 3) return;
-      if (isQuestionAnswered(currentQuestion)) handleNext();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }); // re-registers each render to capture latest state
+    if (!showAlert && !showUnderAgeMessage) return;
+    clearSurveySession(token);
+  }, [showAlert, showUnderAgeMessage, token]);
 
-  /* ── Helpers (unchanged) ────────────────────────────────────── */
+  useEffect(() => {
+    autoAdvanceRef.current = true;
+    debug("autoAdvance enabled");
+  }, []);
+
+  useEffect(() => {
+    scrollViewportToTop();
+  }, [currentQuestion, showConsentStep]);
 
   const isQuestionAnswered = (index) => {
-    if (!questions || !questions[index]) return false;
+    if (!questions[index]) return false;
+
     const question = questions[index];
     const answer = answers[question.key];
 
     if (question.key === "medicare_number") {
       if (medicareCheckbox) return true;
+
       const expQ = questions.find((q) => q.key === "medicare_expiry");
-      const irnQ = questions.find((q) => q.key === "individual_reference_number");
+      const irnQ = questions.find(
+        (q) => q.key === "individual_reference_number",
+      );
       const a1 = answers.medicare_number;
       const a2 = expQ ? answers[expQ.key] : null;
       const a3 = irnQ ? answers[irnQ.key] : null;
-      return (a1 !== undefined && a1 !== "" && a2 instanceof Date && !isNaN(a2) && a3 !== undefined && a3 !== "");
+
+      return (
+        a1 !== undefined &&
+        a1 !== "" &&
+        a2 instanceof Date &&
+        !isNaN(a2) &&
+        a3 !== undefined &&
+        a3 !== ""
+      );
     }
+
     if (question.key === "height") {
-      return answer !== undefined && answer !== "" && parseFloat(answer) >= 50 && parseFloat(answer) <= 251;
+      return (
+        answer !== undefined &&
+        answer !== "" &&
+        parseFloat(answer) >= 50 &&
+        parseFloat(answer) <= 251
+      );
     }
+
     if (question.key === "weight") {
-      return answer !== undefined && answer !== "" && parseFloat(answer) >= 40 && parseFloat(answer) <= 300;
+      return (
+        answer !== undefined &&
+        answer !== "" &&
+        parseFloat(answer) >= 40 &&
+        parseFloat(answer) <= 300
+      );
     }
+
     if (question.type === "multi_select") {
       if (!Array.isArray(answer) || answer.length === 0) return false;
-      if (answer.length === 1 && answer[0] === "Other") return !!otherTexts[question.key];
+      if (answer.length === 1 && answer[0] === "Other") {
+        return !!otherTexts[question.key];
+      }
       return true;
     }
+
+    if (question.type === "date_input") {
+      return isAdultDob(answer);
+    }
+
     return answer !== undefined && answer !== "";
   };
 
+  const handleNext = () => {
+    debug("handleNext:start", {
+      currentQuestion,
+      currentKey: questions[currentQuestion]?.key,
+      currentAnswered: isQuestionAnswered(currentQuestion),
+    });
+
+    if (
+      questions[currentQuestion]?.key === "medicare_number" &&
+      !medicareCheckbox
+    ) {
+      const a1 = (answers.medicare_number || "").trim();
+      const a3 = (answers.individual_reference_number || "").trim();
+      let hasError = false;
+
+      if (!a1) {
+        setErrors((p) => ({
+          ...p,
+          medicare_number: "Medicare number is required",
+        }));
+        hasError = true;
+      } else if (!/^\d{10}$/.test(a1)) {
+        setErrors((p) => ({
+          ...p,
+          medicare_number: "Medicare number must be 10 digits",
+        }));
+        hasError = true;
+      }
+
+      if (!a3) {
+        setErrors((p) => ({
+          ...p,
+          individual_reference_number:
+            "Individual Reference Number is required",
+        }));
+        hasError = true;
+      }
+
+      if (hasError) return;
+    }
+
+    const nextVisibleIdx = currentVisibleIndex + 1;
+    if (nextVisibleIdx < visibleIndices.length) {
+      goTo(visibleIndices[nextVisibleIdx]);
+    } else {
+      setShowConsentStep(true);
+    }
+  };
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key !== "Enter" || showConsentStep) return;
+      const q = questions[currentQuestion];
+      if (!q) return;
+      if (q.type === "MCQs" && q.choices && q.choices.length <= 3) return;
+
+      if (isQuestionAnswered(currentQuestion)) handleNext();
+    };
+
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [showConsentStep, questions, currentQuestion, answers, medicareCheckbox]);
+
   const validateNumberInput = (value, fieldName) => {
     if (isNaN(value)) {
-      setErrors((prev) => ({ ...prev, [fieldName]: "Please enter only a number" }));
+      setErrors((prev) => ({
+        ...prev,
+        [fieldName]: "Please enter only a number",
+      }));
       return false;
     }
+
     if (fieldName === "medicare" && value.length > 10) {
-      setErrors((prev) => ({ ...prev, [fieldName]: "Medicare number should not exceed 10 digits" }));
+      setErrors((prev) => ({
+        ...prev,
+        [fieldName]: "Medicare number should not exceed 10 digits",
+      }));
       return false;
     }
+
     setErrors((prev) => ({ ...prev, [fieldName]: null }));
     return true;
   };
 
-  const handleAddressSelect = async (address) => {
-    setValue(address, false);
-    clearSuggestions();
-    try {
-      const results = await getGeocode({ address });
-      const components = results[0].address_components;
-      const find = (type) => components.find((c) => c.types.includes(type))?.long_name || "";
-      handleAnswer("streetNumber", find("street_number"));
-      handleAnswer("streetName", find("route"));
-      handleAnswer("suburb", find("locality"));
-      handleAnswer("state", find("administrative_area_level_1"));
-      handleAnswer("postcode", find("postal_code"));
-    } catch (error) {
-      console.error("Address lookup error:", error);
-    }
-  };
-
-  const handleAnswer = (Key, answer) => {
-    setAnswers((prev) => ({ ...prev, [Key]: answer }));
+  const handleAnswer = (key, answer) => {
+    debug("handleAnswer", { key, answer });
+    setAnswers((prev) => ({ ...prev, [key]: answer }));
   };
 
   const buildPayload = (data, isCompleted) => {
     const payload = {};
-    questions.forEach(q => {
+
+    questions.forEach((q) => {
       const key = q.key;
       const val = data[key];
+
       if (q.type === "multi_select" && Array.isArray(val)) {
         payload[key] = val.join(", ");
       } else if (key === "medicare_expiry" && val instanceof Date) {
@@ -307,14 +754,14 @@ const SurveyQuestions = () => {
         payload[key] = val || "";
       }
     });
-    payload.treatment_id = id;
+
+    payload.treatment_id = resolvedTreatment.treatmentId || id;
     payload.is_completed = isCompleted;
     payload.user_id = userId;
     payload.ihi_number = data.ihi_number || "";
+
     return payload;
   };
-
-  /* ── API handlers (unchanged) ───────────────────────────────── */
 
   const handleSubmit = async () => {
     setSurveyLoading(true);
@@ -324,13 +771,14 @@ const SurveyQuestions = () => {
       searchParams.set("quiz_status", "done");
       setSurveySubmitted(true);
       navigate(`${location.pathname}?${searchParams.toString()}`);
-      sessionStorage.clear();
-      sessionStorage.removeItem(LOCAL_STORAGE_KEY);
-      sessionStorage.removeItem(`${LOCAL_STORAGE_KEY}_${token}`);
+      clearSurveySession(token);
     } catch (error) {
-      const detail = error.response?.data?.detail || error.response?.data || error.message;
-      console.error("[Survey submit error]", detail);
-      setSubmitError(typeof detail === "string" ? detail : JSON.stringify(detail));
+      const detail =
+        error.response?.data?.detail || error.response?.data || error.message;
+      debugError("handleSubmit:error", detail);
+      setSubmitError(
+        typeof detail === "string" ? detail : JSON.stringify(detail),
+      );
     } finally {
       setSurveyLoading(false);
     }
@@ -344,30 +792,28 @@ const SurveyQuestions = () => {
       setSurveySaved(true);
       searchParams.set("quiz_status", "saved");
       navigate(`${location.pathname}?${searchParams.toString()}`);
-      sessionStorage.clear();
-      sessionStorage.removeItem(LOCAL_STORAGE_KEY);
-      sessionStorage.removeItem(`${LOCAL_STORAGE_KEY}_${token}`);
+      clearSurveySession(token);
     } catch (error) {
-      const detail = error.response?.data?.detail || error.response?.data || error.message;
-      console.error("[Survey save error]", detail);
+      const detail =
+        error.response?.data?.detail || error.response?.data || error.message;
+      debugError("handleSave:error", detail);
     } finally {
       setSurveyLoading(false);
     }
   };
 
-  const handleContinue = () => { hidePopup(); };
+  const handleContinue = () => hidePopup();
 
   const sendStoppedQuestionnaireData = async (overrideAnswers) => {
     const data = overrideAnswers || answers;
     try {
       await api.post("/api/register/complete", buildPayload(data, false));
     } catch (error) {
-      const detail = error.response?.data?.detail || error.response?.data || error.message;
-      console.error("[Survey stopped error]", detail);
+      const detail =
+        error.response?.data?.detail || error.response?.data || error.message;
+      debugError("sendStoppedQuestionnaireData:error", detail);
     }
   };
-
-  /* ── Navigation (modified: increments animKey) ──────────────── */
 
   const goTo = (nextIndex) => {
     setCurrentQuestion(nextIndex);
@@ -375,107 +821,107 @@ const SurveyQuestions = () => {
     setProgress(((nextIndex + 1) / questions.length) * 100);
   };
 
-  const handleNext = () => {
-    if (questions[currentQuestion]?.key === "medicare_number" && !medicareCheckbox) {
-      const a1 = (answers.medicare_number || "").trim();
-      const a3 = (answers.individual_reference_number || "").trim();
-      let hasError = false;
-      if (!a1) { setErrors((p) => ({ ...p, medicare_number: "Medicare number is required" })); hasError = true; }
-      else if (!/^\d{10}$/.test(a1)) { setErrors((p) => ({ ...p, medicare_number: "Medicare number must be 10 digits" })); hasError = true; }
-      if (!a3) { setErrors((p) => ({ ...p, individual_reference_number: "Individual Reference Number is required" })); hasError = true; }
-      if (hasError) return;
-    }
-    let nextIndex = currentQuestion + 1;
-    while (nextIndex < questions.length && !isQuestionVisible(nextIndex)) { nextIndex++; }
-    if (nextIndex < questions.length) {
-      goTo(nextIndex);
-    } else {
-      setShowConsentStep(true);
-    }
-  };
-
   const handlePrevious = () => {
-    let prevIndex = currentQuestion - 1;
-    while (prevIndex >= 0 && !isQuestionVisible(prevIndex)) { prevIndex--; }
-    if (prevIndex >= 0) goTo(prevIndex);
+    const prevVisibleIdx = currentVisibleIndex - 1;
+    if (prevVisibleIdx >= 0) goTo(visibleIndices[prevVisibleIdx]);
   };
 
-  /* ── Computed values ────────────────────────────────────────── */
+  const visibleIndices = getOrderedVisible();
 
-  const visibleIndices = questions.map((_, i) => i).filter((i) => isQuestionVisible(i));
   const currentVisibleIndex = visibleIndices.indexOf(currentQuestion);
   const totalVisible = visibleIndices.length;
   const currentQ = questions[currentQuestion];
   const answered = isQuestionAnswered(currentQuestion);
 
-  // Section badge: show when question.section exists and differs from previous
   const currentSection = currentQ?.section;
-  const prevVisibleIdx = currentVisibleIndex > 0 ? visibleIndices[currentVisibleIndex - 1] : -1;
-  const prevSection = prevVisibleIdx >= 0 ? questions[prevVisibleIdx]?.section : null;
+  const prevVisibleIdx =
+    currentVisibleIndex > 0 ? visibleIndices[currentVisibleIndex - 1] : -1;
+  const prevSection =
+    prevVisibleIdx >= 0 ? questions[prevVisibleIdx]?.section : null;
   const showSectionBadge = currentSection && currentSection !== prevSection;
 
-  // Consent
   const consentQuestion = questions.find((q) => q.key === "consent_provided");
   const consentStatements = consentQuestion?.choices || [];
-  const allConsentChecked = consentChecked.length === consentStatements.length && consentChecked.every(Boolean);
-
-  /* ══════════════════════════════════════════════════════════════ */
-  /*  RENDER HELPERS                                               */
-  /* ══════════════════════════════════════════════════════════════ */
-
-  /* ── MCQ ────────────────────────────────────────────────────── */
+  const allConsentChecked =
+    consentChecked.length === consentStatements.length &&
+    consentChecked.every(Boolean);
 
   const renderMCQ = (question, index) => {
-    const canAutoAdvance = question.choices.length <= 3;
+    const canAutoAdvance = question.choices.length <= 3 || question.key === "exercise" || question.key === "referral_source";
+    const mcqOtherSelected = answers[question.key] === "Other" && question.choices.includes("Other");
+
     return (
-      <div className="sq-mcq-list">
-        {question.choices.map((choice, i) => {
-          const selected = answers[question.key] === choice;
-          return (
-            <button
-              key={i}
-              type="button"
-              className={`sq-mcq-card${selected ? " sq-mcq-card--selected" : ""}`}
-              style={{ animationDelay: `${i * 50}ms` }}
-              onClick={() => {
-                handleAnswer(question.key, choice);
-                const newAnswers = { ...answers, [question.key]: choice };
+      <div>
+        <div className="sq-mcq-list">
+          {question.choices.map((choice, i) => {
+            const selected = answers[question.key] === choice;
 
-                if (question.key === "age_over_18" && choice === "No") {
-                  sendStoppedQuestionnaireData(newAnswers);
-                  setTimeout(() => setShowUnderAgeMessage(true), 400);
-                  return;
-                }
+            return (
+              <button
+                key={i}
+                type="button"
+                className={`sq-mcq-card${selected ? " sq-mcq-card--selected" : ""}`}
+                style={{ animationDelay: `${i * 50}ms` }}
+                onClick={() => {
+                  handleAnswer(question.key, choice);
+                  const newAnswers = { ...answers, [question.key]: choice };
 
-                if (canAutoAdvance && autoAdvanceRef.current) {
-                  setTimeout(() => {
-                    let next = index + 1;
-                    while (next < questions.length && !isQuestionVisible(next, newAnswers)) next++;
-                    if (next < questions.length) {
-                      goTo(next);
-                    } else {
-                      setShowConsentStep(true);
-                    }
-                  }, 400);
-                }
-              }}
-            >
-              <div className="sq-mcq-radio">
-                {selected && <div className="sq-mcq-radio-dot" />}
-              </div>
-              <span>{sanitizeInput(choice)}</span>
-            </button>
-          );
-        })}
+                  if (question.key === "age_over_18" && choice === "No") {
+                    sendStoppedQuestionnaireData(newAnswers);
+                    setTimeout(() => setShowUnderAgeMessage(true), 400);
+                    return;
+                  }
+
+                  const skipAutoAdvance =
+                    question.key === "referral_source" && choice === "Other";
+
+                  if (canAutoAdvance && autoAdvanceRef.current && !skipAutoAdvance) {
+                    setTimeout(() => {
+                      const newOrdered = getOrderedVisible(newAnswers);
+                      const curIdx = newOrdered.indexOf(index);
+                      const nextIdx = curIdx + 1;
+                      if (nextIdx < newOrdered.length) {
+                        goTo(newOrdered[nextIdx]);
+                      } else {
+                        setShowConsentStep(true);
+                      }
+                    }, 400);
+                  }
+                }}
+              >
+                <div className="sq-mcq-radio">
+                  {selected && <div className="sq-mcq-radio-dot" />}
+                </div>
+                <span>{sanitizeInput(choice)}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {mcqOtherSelected && (
+          <input
+            type="text"
+            className="sq-chip-other-input"
+            placeholder="Please specify…"
+            value={otherTexts[question.key] || ""}
+            autoFocus
+            onChange={(e) =>
+              setOtherTexts((p) => ({ ...p, [question.key]: e.target.value }))
+            }
+          />
+        )}
       </div>
     );
   };
 
-  /* ── Multi-select chips ─────────────────────────────────────── */
-
-  const renderMultiSelect = (question) => {
-    const currentValues = Array.isArray(answers[question.key]) ? answers[question.key] : [];
+  const renderMultiSelect = (question, index) => {
+    const currentValues = Array.isArray(answers[question.key])
+      ? answers[question.key]
+      : [];
     const otherSelected = currentValues.includes("Other");
+
+    const autoAdvanceKeys = [];
+    const canChipAutoAdvance = autoAdvanceKeys.includes(question.key);
 
     return (
       <div>
@@ -494,13 +940,22 @@ const SurveyQuestions = () => {
                 onClick={() => {
                   if (isOther) {
                     if (isSelected) {
-                      handleAnswer(question.key, currentValues.filter((v) => v !== "Other"));
+                      handleAnswer(
+                        question.key,
+                        currentValues.filter((v) => v !== "Other"),
+                      );
                       setOtherTexts((p) => ({ ...p, [question.key]: "" }));
                     } else {
-                      handleAnswer(question.key, currentValues.filter((v) => v !== "None of the above").concat("Other"));
+                      handleAnswer(
+                        question.key,
+                        currentValues
+                          .filter((v) => v !== "None of the above")
+                          .concat("Other"),
+                      );
                     }
                     return;
                   }
+
                   let newValues;
                   if (isNone) {
                     newValues = isSelected ? [] : ["None of the above"];
@@ -508,9 +963,26 @@ const SurveyQuestions = () => {
                   } else if (isSelected) {
                     newValues = currentValues.filter((v) => v !== choice);
                   } else {
-                    newValues = currentValues.filter((v) => v !== "None of the above").concat(choice);
+                    newValues = currentValues
+                      .filter((v) => v !== "None of the above")
+                      .concat(choice);
                   }
+
                   handleAnswer(question.key, newValues);
+
+                  if (canChipAutoAdvance && autoAdvanceRef.current && !isNone) {
+                    const newAnswers = { ...answers, [question.key]: newValues };
+                    setTimeout(() => {
+                      const newOrdered = getOrderedVisible(newAnswers);
+                      const curIdx = newOrdered.indexOf(index);
+                      const nextIdx = curIdx + 1;
+                      if (nextIdx < newOrdered.length) {
+                        goTo(newOrdered[nextIdx]);
+                      } else {
+                        setShowConsentStep(true);
+                      }
+                    }, 400);
+                  }
                 }}
               >
                 <div className="sq-chip-checkbox">
@@ -530,12 +1002,18 @@ const SurveyQuestions = () => {
             value={otherTexts[question.key] || ""}
             autoFocus
             onChange={(e) => {
-              setOtherTexts((p) => ({ ...p, [question.key]: e.target.value }));
+              setOtherTexts((p) => ({
+                ...p,
+                [question.key]: e.target.value,
+              }));
             }}
             onBlur={(e) => {
               if (!e.target.value) {
                 setOtherTexts((p) => ({ ...p, [question.key]: "" }));
-                handleAnswer(question.key, currentValues.filter((v) => v !== "Other"));
+                handleAnswer(
+                  question.key,
+                  currentValues.filter((v) => v !== "Other"),
+                );
               }
             }}
           />
@@ -543,8 +1021,6 @@ const SurveyQuestions = () => {
       </div>
     );
   };
-
-  /* ── Text / number input ────────────────────────────────────── */
 
   const renderTextInput = (question, index) => (
     <div>
@@ -554,19 +1030,25 @@ const SurveyQuestions = () => {
         value={answers[question.key] || ""}
         onChange={(e) => {
           const v = e.target.value;
-          if (question.type === "weight_input" || question.question.includes("height")) {
-            if (validateNumberInput(v, `question_${index}`) && !isNaN(v)) handleAnswer(question.key, v);
+
+          if (
+            question.type === "weight_input" ||
+            question.question.includes("height")
+          ) {
+            if (validateNumberInput(v, `question_${index}`) && !isNaN(v)) {
+              handleAnswer(question.key, v);
+            }
           } else {
             handleAnswer(question.key, v);
           }
         }}
         placeholder={sanitizeInput(question.placeholder)}
       />
-      {errors[`question_${index}`] && <p className="sq-field-error">{errors[`question_${index}`]}</p>}
+      {errors[`question_${index}`] && (
+        <p className="sq-field-error">{errors[`question_${index}`]}</p>
+      )}
     </div>
   );
-
-  /* ── Textarea ───────────────────────────────────────────────── */
 
   const renderTextarea = (question) => (
     <div>
@@ -578,27 +1060,42 @@ const SurveyQuestions = () => {
         rows="5"
         maxLength={1000}
       />
-      {question.description && <p className="sq-field-description">{sanitizeInput(question.description)}</p>}
+      {question.description && (
+        <p className="sq-field-description">
+          {sanitizeInput(question.description)}
+        </p>
+      )}
     </div>
   );
 
-  /* ── Date input ─────────────────────────────────────────────── */
-
   const renderDateInput = (question) => {
-    const today = new Date();
-    const maxDate = new Date(today.setFullYear(today.getFullYear() - 18)).toISOString().split("T")[0];
+    const maxDate = getAdultDobMaxDate();
+
     return (
-      <input
-        type="date"
-        className="sq-input"
-        max={maxDate}
-        value={answers[question.key] || ""}
-        onChange={(e) => handleAnswer(question.key, e.target.value)}
-      />
+      <div>
+        <input
+          type="date"
+          className="sq-input"
+          max={maxDate}
+          value={answers[question.key] || ""}
+          onChange={(e) => {
+            const value = e.target.value;
+            handleAnswer(question.key, value);
+            setErrors((prev) => ({
+              ...prev,
+              [question.key]:
+                value && !isAdultDob(value)
+                  ? "You must be at least 18 years old."
+                  : null,
+            }));
+          }}
+        />
+        {errors[question.key] && (
+          <p className="sq-field-error">{errors[question.key]}</p>
+        )}
+      </div>
     );
   };
-
-  /* ── Medicare composite ─────────────────────────────────────── */
 
   const renderMedicare = (question) => {
     const expQ = questions.find((q) => q.key === "medicare_expiry");
@@ -606,24 +1103,35 @@ const SurveyQuestions = () => {
 
     return (
       <div className="sq-medicare-group">
-        {/* Medicare number */}
         <div>
           <input
             type="text"
             className="sq-input"
             value={answers.medicare_number || ""}
-            onChange={(e) => { const v = e.target.value; if (validateNumberInput(v, "medicare")) handleAnswer("medicare_number", v); }}
+            onChange={(e) => {
+              const v = e.target.value;
+              if (validateNumberInput(v, "medicare")) {
+                handleAnswer("medicare_number", v);
+              }
+            }}
             placeholder={sanitizeInput(question.placeholder)}
             disabled={medicareCheckbox}
           />
-          {errors["medicare_number"] && <p className="sq-field-error">{errors["medicare_number"]}</p>}
-          {question.description && <p className="sq-field-description">{sanitizeInput(question.description)}</p>}
+          {errors.medicare_number && (
+            <p className="sq-field-error">{errors.medicare_number}</p>
+          )}
+          {question.description && (
+            <p className="sq-field-description">
+              {sanitizeInput(question.description)}
+            </p>
+          )}
         </div>
 
-        {/* Expiry date */}
         {expQ && (
           <div>
-            <p className="sq-medicare-field-label">{sanitizeInput(expQ.question)}</p>
+            <p className="sq-medicare-field-label">
+              {sanitizeInput(expQ.question)}
+            </p>
             <DatePicker
               selected={answers.medicare_expiry || null}
               onChange={(date) => handleAnswer("medicare_expiry", date || null)}
@@ -633,34 +1141,54 @@ const SurveyQuestions = () => {
               minDate={new Date()}
               className="sq-input"
               disabled={medicareCheckbox}
+              portalId="sq-datepicker-portal"
+              popperPlacement="bottom-start"
             />
-            {errors["medicare_expiry"] && <p className="sq-field-error">{errors["medicare_expiry"]}</p>}
+            {errors.medicare_expiry && (
+              <p className="sq-field-error">{errors.medicare_expiry}</p>
+            )}
           </div>
         )}
 
-        {/* IRN */}
         {irnQ && (
           <div>
-            <p className="sq-medicare-field-label">{sanitizeInput(irnQ.question)}</p>
+            <p className="sq-medicare-field-label">
+              {sanitizeInput(irnQ.question)}
+            </p>
             <input
               type="text"
               className="sq-input"
               value={answers.individual_reference_number || ""}
-              onChange={(e) => { const v = e.target.value; if (validateNumberInput(v, "individual_reference_number")) handleAnswer("individual_reference_number", v); }}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (validateNumberInput(v, "individual_reference_number")) {
+                  handleAnswer("individual_reference_number", v);
+                }
+              }}
               placeholder={sanitizeInput(irnQ.placeholder)}
               disabled={medicareCheckbox}
             />
-            {errors["individual_reference_number"] && <p className="sq-field-error">{errors["individual_reference_number"]}</p>}
-            {irnQ.description && <p className="sq-field-description">{sanitizeInput(irnQ.description)}</p>}
+            {errors.individual_reference_number && (
+              <p className="sq-field-error">
+                {errors.individual_reference_number}
+              </p>
+            )}
+            {irnQ.description && (
+              <p className="sq-field-description">
+                {sanitizeInput(irnQ.description)}
+              </p>
+            )}
           </div>
         )}
 
-        {/* Medicare card image */}
         {medicareCardImageUrl && validateImageUrl(medicareCardImageUrl) && (
-          <img src={validateImageUrl(medicareCardImageUrl)} alt="Medicare card" className="sq-medicare-image" />
+          <img
+            src={validateImageUrl(medicareCardImageUrl)}
+            alt="Medicare card"
+            className="sq-medicare-image"
+          />
         )}
 
-        {/* Skip checkbox */}
         {question.checkbox && (
           <div className="sq-medicare-checkbox-row">
             <input
@@ -670,20 +1198,35 @@ const SurveyQuestions = () => {
               onChange={(e) => {
                 const checked = e.target.checked;
                 setMedicareCheckbox(checked);
+
                 if (checked) {
-                  setAnswers((prev) => ({ ...prev, medicare_number: "", medicare_expiry: "", individual_reference_number: "" }));
-                  setErrors((prev) => { const n = { ...prev }; delete n.medicare_number; delete n.medicare_expiry; delete n.individual_reference_number; return n; });
+                  setAnswers((prev) => ({
+                    ...prev,
+                    medicare_number: "",
+                    medicare_expiry: "",
+                    individual_reference_number: "",
+                  }));
+
+                  setErrors((prev) => {
+                    const next = { ...prev };
+                    delete next.medicare_number;
+                    delete next.medicare_expiry;
+                    delete next.individual_reference_number;
+                    return next;
+                  });
                 }
               }}
             />
-            <label htmlFor="checkbox-medicare">I'll have these ready for the consultation.</label>
+            <label htmlFor="checkbox-medicare">
+              I'll have these ready for the consultation.
+            </label>
           </div>
         )}
 
-        {/* IHI fallback */}
         <div className="sq-ihi-section">
           <p className="sq-ihi-description">
-            Don't have a Medicare card? Please provide your Individual Healthcare Identifier (IHI) number.
+            Don't have a Medicare card? Please provide your Individual
+            Healthcare Identifier (IHI) number.
           </p>
           <input
             type="text"
@@ -697,45 +1240,71 @@ const SurveyQuestions = () => {
     );
   };
 
-  /* ── Route to correct render per type ───────────────────────── */
-
   const renderAnswerType = (question, index) => {
     if (question.key === "medicare_number") return renderMedicare(question);
+
     switch (question.type) {
-      case "MCQs":         return renderMCQ(question, index);
-      case "multi_select": return renderMultiSelect(question);
-      case "date_input":   return renderDateInput(question);
+      case "MCQs":
+        return renderMCQ(question, index);
+      case "multi_select":
+        return renderMultiSelect(question, index);
+      case "date_input":
+        return renderDateInput(question);
       case "input":
-      case "weight_input": return renderTextInput(question, index);
-      case "Textarea":     return renderTextarea(question);
-      default:             return null;
+      case "weight_input":
+        return renderTextInput(question, index);
+      case "Textarea":
+        return renderTextarea(question);
+      default:
+        return null;
     }
   };
-
-  /* ── Consent step ───────────────────────────────────────────── */
 
   const renderConsentContent = () => (
     <div className="sq-question-container" key="consent">
       <div className="sq-question-number">Final Step</div>
-      <h2 className="sq-question-text">Before we submit, please confirm the following:</h2>
+      <h2 className="sq-question-text">
+        Before we submit, please confirm the following:
+      </h2>
       <div className="sq-answer-area">
         <div className="sq-consent-list">
           {consentStatements.map((statement, i) => {
             const checked = consentChecked[i] || false;
+
             return (
               <div
                 key={i}
                 className="sq-consent-row"
                 onClick={() => {
-                  const updated = consentStatements.map((_, idx) => idx === i ? !consentChecked[idx] : (consentChecked[idx] || false));
+                  const updated = consentStatements.map((_, idx) =>
+                    idx === i
+                      ? !consentChecked[idx]
+                      : consentChecked[idx] || false,
+                  );
                   setConsentChecked(updated);
                 }}
               >
-                <div className={`sq-consent-checkbox${checked ? " sq-consent-checkbox--checked" : ""}`}>
+                <div
+                  className={`sq-consent-checkbox${
+                    checked ? " sq-consent-checkbox--checked" : ""
+                  }`}
+                >
                   {checked && (
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M2 7.5L5.5 11L12 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                        style={{ color: "var(--primed-color-accent, #faf08c)" }} />
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 14 14"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M2 7.5L5.5 11L12 3"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        style={{ color: "var(--primed-color-accent, #faf08c)" }}
+                      />
                     </svg>
                   )}
                 </div>
@@ -744,14 +1313,13 @@ const SurveyQuestions = () => {
             );
           })}
         </div>
-        {submitError && <p className="sq-submit-error">Submission failed: {submitError}</p>}
+
+        {submitError && (
+          <p className="sq-submit-error">Submission failed: {submitError}</p>
+        )}
       </div>
     </div>
   );
-
-  /* ══════════════════════════════════════════════════════════════ */
-  /*  TERMINAL SCREENS (reuse existing questionnaire-wrapper)      */
-  /* ══════════════════════════════════════════════════════════════ */
 
   if (surveySubmitted) {
     return (
@@ -760,17 +1328,24 @@ const SurveyQuestions = () => {
           <div className="questionnaire-container">
             <div className="questionnaire-card">
               <div className="card-body">
-                <h3 className="questionnaire-title">That's it! You're all done.</h3>
+                <h3 className="questionnaire-title">
+                  That's it! You're all done.
+                </h3>
                 <p className="questionnaire-description">
-                  Thank you for completing the questionnaire. We look forward to discussing your{" "}
-                  health journey in your upcoming consultation
+                  Thank you for completing the questionnaire. We look forward to
+                  discussing your health journey in your upcoming consultation
                 </p>
                 <p className="questionnaire-notice">
-                  After the appointment, your practitioner will be in touch to recommend a tailored treatment plan.
+                  After the appointment, your practitioner will be in touch to
+                  recommend a tailored treatment plan.
                 </p>
-                <p className="questionnaire-notice">Redirecting to your dashboard in a few seconds...</p>
+                <p className="questionnaire-notice">
+                  Redirecting to your dashboard in a few seconds...
+                </p>
                 <a href={dashboardUrl || `${getBaseUrl()}/patient`}>
-                  <button className="questionairre-startBtn">Go To Dashboard</button>
+                  <button className="questionairre-startBtn">
+                    Go To Dashboard
+                  </button>
                 </a>
               </div>
             </div>
@@ -789,13 +1364,17 @@ const SurveyQuestions = () => {
               <div className="card-body">
                 <h3 className="questionnaire-title">Your Progress Is Saved!</h3>
                 <p className="questionnaire-description">
-                  Login anytime to your account to continue your questionnaire for the telehealth assessment from where you stopped!
+                  Login anytime to your account to continue your questionnaire
+                  for the telehealth assessment from where you stopped!
                 </p>
                 <p className="questionnaire-notice">
-                  After finishing your questionnaire, your practitioner will be in touch to recommend a tailored treatment plan.
+                  After finishing your questionnaire, your practitioner will be
+                  in touch to recommend a tailored treatment plan.
                 </p>
                 <a href={`${getBaseUrl()}/patient`}>
-                  <button className="questionairre-startBtn">Login To Your Dashboard</button>
+                  <button className="questionairre-startBtn">
+                    Login To Your Dashboard
+                  </button>
                 </a>
               </div>
             </div>
@@ -806,9 +1385,6 @@ const SurveyQuestions = () => {
   }
 
   if (showAlert) {
-    sessionStorage.removeItem(LOCAL_STORAGE_KEY);
-    sessionStorage.removeItem(`${LOCAL_STORAGE_KEY}_${token}`);
-    sessionStorage.clear();
     return (
       <div className="questionnaire-wrapper">
         <div className="container">
@@ -816,15 +1392,20 @@ const SurveyQuestions = () => {
             <div className="questionnaire-card">
               <div className="card-body">
                 <h3 className="questionnaire-title">
-                  We're sorry, but Primed Clinic is not the right fit for you at this time.
+                  We're sorry, but Primed Clinic is not the right fit for you at
+                  this time.
                 </h3>
                 <p className="questionnaire-description survey-questionnaire-description">
-                  Primed Clinic is not suitable for pregnant women, those breastfeeding or planning to become pregnant.
-                  Some of the treatments available through Primed Clinic could complicate your pregnancy journey.
-                  Please get in touch with your GP, who can offer more suitable options.
+                  Primed Clinic is not suitable for pregnant women, those
+                  breastfeeding or planning to become pregnant. Some of the
+                  treatments available through Primed Clinic could complicate
+                  your pregnancy journey. Please get in touch with your GP, who
+                  can offer more suitable options.
                 </p>
                 <Link to="/">
-                  <button className="questionairre-startBtn">Return To Home Page</button>
+                  <button className="questionairre-startBtn">
+                    Return To Home Page
+                  </button>
                 </Link>
               </div>
             </div>
@@ -835,29 +1416,42 @@ const SurveyQuestions = () => {
   }
 
   if (showUnderAgeMessage) {
-    sessionStorage.removeItem(LOCAL_STORAGE_KEY);
-    sessionStorage.removeItem(`${LOCAL_STORAGE_KEY}_${token}`);
-    sessionStorage.clear();
     return (
       <div className="questionnaire-wrapper">
         <div className="container">
           <div className="questionnaire-container">
             <div className="questionnaire-card">
               <div className="card-body">
-                <div style={{ fontSize: "52px", textAlign: "center", marginBottom: "8px" }}>👩‍⚕️</div>
-
+                <div
+                  style={{
+                    fontSize: "52px",
+                    textAlign: "center",
+                    marginBottom: "8px",
+                  }}
+                >
+                  👩‍⚕️
+                </div>
                 <h3 className="questionnaire-title">We're Unable to Proceed</h3>
                 <p className="questionnaire-description survey-questionnaire-description">
-                  Thank you for taking a moment to complete our initial screening — we truly appreciate it.
+                  Thank you for taking a moment to complete our initial
+                  screening - we truly appreciate it.
                 </p>
                 <p className="questionnaire-description survey-questionnaire-description">
-                  Unfortunately, our services are exclusively available to patients who are <strong>18 years of age or older</strong>. Based on your response, you don't meet this eligibility requirement at this time, so we're unable to continue with your consultation.
+                  Unfortunately, our services are exclusively available to
+                  patients who are <strong>18 years of age or older</strong>.
+                  Based on your response, you don't meet this eligibility
+                  requirement at this time, so we're unable to continue with
+                  your consultation.
                 </p>
                 <p className="questionnaire-description survey-questionnaire-description">
-                  We'd encourage you to speak with your GP or a trusted adult, who can help connect you with the most appropriate healthcare support for your needs. Wishing you the very best of health!
+                  We'd encourage you to speak with your GP or a trusted adult,
+                  who can help connect you with the most appropriate healthcare
+                  support for your needs. Wishing you the very best of health!
                 </p>
                 <a href="https://www.primedclinic.com.au">
-                  <button className="questionairre-startBtn">Return To Home Page</button>
+                  <button className="questionairre-startBtn">
+                    Return To Home Page
+                  </button>
                 </a>
               </div>
             </div>
@@ -867,36 +1461,46 @@ const SurveyQuestions = () => {
     );
   }
 
-  /* ══════════════════════════════════════════════════════════════ */
-  /*  MAIN RENDER                                                  */
-  /* ══════════════════════════════════════════════════════════════ */
-
   if (questions.length === 0) {
-    return <div className="sq-wrapper"><div className="sq-loading">Loading questionnaire…</div></div>;
+    return (
+      <div className="sq-wrapper">
+        <div className="sq-loading">Loading questionnaire…</div>
+      </div>
+    );
   }
 
-  const progressPercent = totalVisible > 0
-    ? ((showConsentStep ? totalVisible : currentVisibleIndex + 1) / totalVisible) * 100
-    : 0;
+  const progressPercent =
+    totalVisible > 0
+      ? ((showConsentStep ? totalVisible : currentVisibleIndex + 1) /
+          totalVisible) *
+        100
+      : 0;
 
   return (
     <div className="sq-wrapper">
-      {/* ── Progress ──────────────────────────────────────────── */}
       <div className="sq-progress-wrapper">
         <div className="sq-progress">
           <div className="sq-progress-bar">
-            <div className="sq-progress-fill" style={{ width: `${progressPercent}%` }} />
+            <div
+              className="sq-progress-fill"
+              style={{ width: `${progressPercent}%` }}
+            />
           </div>
+
           <div className="sq-dot-track">
             {visibleIndices.map((qIdx, dotIdx) => {
               const isDone = dotIdx < currentVisibleIndex && !showConsentStep;
-              const isActive = dotIdx === currentVisibleIndex && !showConsentStep;
+              const isActive =
+                dotIdx === currentVisibleIndex && !showConsentStep;
               const isFuture = dotIdx > currentVisibleIndex || showConsentStep;
+
               return (
                 <button
                   key={qIdx}
                   type="button"
-                  className={`sq-dot${isDone ? " sq-dot--done" : ""}${isActive ? " sq-dot--active" : ""}${isFuture ? " sq-dot--future" : ""}`}
+                  className={`sq-dot${isDone ? " sq-dot--done" : ""}${
+                    isActive ? " sq-dot--active" : ""
+                  }${isFuture ? " sq-dot--future" : ""}`}
                   onClick={() => {
                     if (!isFuture && !showConsentStep) {
                       setCurrentQuestion(qIdx);
@@ -912,17 +1516,20 @@ const SurveyQuestions = () => {
         </div>
       </div>
 
-      {/* ── Content area ──────────────────────────────────────── */}
       <div className="sq-content-area">
         {showConsentStep ? (
           renderConsentContent()
         ) : currentQ ? (
           <div className="sq-question-container" key={animKey}>
-            {showSectionBadge && <div className="sq-section-badge">{currentSection}</div>}
+            {showSectionBadge && (
+              <div className="sq-section-badge">{currentSection}</div>
+            )}
             <div className="sq-question-number">
               Question {currentVisibleIndex + 1} of {totalVisible}
             </div>
-            <h2 className="sq-question-text">{sanitizeInput(currentQ.question)}</h2>
+            <h2 className="sq-question-text">
+              {sanitizeInput(currentQ.question)}
+            </h2>
             {currentQ.type === "multi_select" && (
               <p className="sq-subtitle">Select all that apply</p>
             )}
@@ -930,15 +1537,22 @@ const SurveyQuestions = () => {
               {renderAnswerType(currentQ, currentQuestion)}
             </div>
           </div>
-        ) : null}
+        ) : (
+          <div className="sq-question-container">
+            <div className="sq-question-text">No current question found.</div>
+          </div>
+        )}
       </div>
 
-      {/* ── Footer ────────────────────────────────────────────── */}
       <div className="sq-footer-wrapper">
         <div className="sq-footer">
           {showConsentStep ? (
             <>
-              <button type="button" className="sq-back-btn" onClick={() => setShowConsentStep(false)}>
+              <button
+                type="button"
+                className="sq-back-btn"
+                onClick={() => setShowConsentStep(false)}
+              >
                 <BackArrow />
               </button>
               <div />
@@ -955,7 +1569,9 @@ const SurveyQuestions = () => {
             <>
               <button
                 type="button"
-                className={`sq-back-btn${currentVisibleIndex === 0 ? " sq-back-btn--hidden" : ""}`}
+                className={`sq-back-btn${
+                  currentVisibleIndex === 0 ? " sq-back-btn--hidden" : ""
+                }`}
                 onClick={handlePrevious}
               >
                 <BackArrow />
@@ -982,34 +1598,132 @@ const SurveyQuestions = () => {
         </div>
       </div>
 
-      {/* ── Save popup (hidden mechanism, preserved) ──────────── */}
       <div ref={dropdownRef} style={{ display: "none" }}>
-        <button onClick={showPopup} className="signout_button" aria-label="Menu">
-          <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M3 6h16M3 11h16M3 16h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <button
+          onClick={showPopup}
+          className="signout_button"
+          aria-label="Menu"
+        >
+          <svg
+            width="22"
+            height="22"
+            viewBox="0 0 22 22"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M3 6h16M3 11h16M3 16h16"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
           </svg>
         </button>
       </div>
+
       {isVisible && (
-        <div className="popup-overlay" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }}>
-          <div className="popup-container" style={{ background: "var(--primed-color-bg, #fff)", borderRadius: "0.5rem", width: "100%", maxWidth: "28rem", position: "relative", padding: "1.7rem 1.5rem", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}>
-            <button onClick={hidePopup} style={{ position: "absolute", right: "1rem", top: "1rem", background: "none", border: "none", cursor: "pointer", color: "#9ca3af" }}><X size={20} /></button>
+        <div
+          className="popup-overlay"
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 50,
+          }}
+        >
+          <div
+            className="popup-container"
+            style={{
+              background: "var(--primed-color-bg, #fff)",
+              borderRadius: "0.5rem",
+              width: "100%",
+              maxWidth: "28rem",
+              position: "relative",
+              padding: "1.7rem 1.5rem",
+              boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
+            }}
+          >
+            <button
+              onClick={hidePopup}
+              style={{
+                position: "absolute",
+                right: "1rem",
+                top: "1rem",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                color: "#9ca3af",
+              }}
+            >
+              <X size={20} />
+            </button>
+
             <div>
-              <h2 style={{ color: "var(--primed-color-primary, #014548)", fontSize: "1.45rem", fontWeight: 600, marginBottom: "1rem" }}>Save your progress?</h2>
-              <p style={{ color: "var(--primed-color-primary, #014548)", fontSize: "1rem", marginBottom: "1.5rem" }}>
-                Save your progress with us and login later to your dashboard to continue your questionnaire!
+              <h2
+                style={{
+                  color: "var(--primed-color-primary, #014548)",
+                  fontSize: "1.45rem",
+                  fontWeight: 600,
+                  marginBottom: "1rem",
+                }}
+              >
+                Save your progress?
+              </h2>
+
+              <p
+                style={{
+                  color: "var(--primed-color-primary, #014548)",
+                  fontSize: "1rem",
+                  marginBottom: "1.5rem",
+                }}
+              >
+                Save your progress with us and login later to your dashboard to
+                continue your questionnaire!
               </p>
-              <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "0.75rem",
+                }}
+              >
                 <button
                   onClick={handleSave}
                   disabled={answers.sex_at_birth === "" || surveyLoading}
-                  style={{ width: "100%", padding: "0.75rem", borderRadius: "0.375rem", fontWeight: 500, border: "none", cursor: "pointer", background: "var(--primed-color-focus, #43a6aa)", color: "#fff", opacity: (answers.sex_at_birth === "" || surveyLoading) ? 0.5 : 1 }}
+                  style={{
+                    width: "100%",
+                    padding: "0.75rem",
+                    borderRadius: "0.375rem",
+                    fontWeight: 500,
+                    border: "none",
+                    cursor: "pointer",
+                    background: "var(--primed-color-focus, #43a6aa)",
+                    color: "#fff",
+                    opacity:
+                      answers.sex_at_birth === "" || surveyLoading ? 0.5 : 1,
+                  }}
                 >
-                  {surveyLoading ? "Saving your progress..." : "Save Your Progress"}
+                  {surveyLoading
+                    ? "Saving your progress..."
+                    : "Save Your Progress"}
                 </button>
+
                 <button
                   onClick={handleContinue}
-                  style={{ width: "100%", padding: "0.75rem", borderRadius: "0.375rem", fontWeight: 500, border: "1px solid var(--primed-color-focus, #43a6aa)", cursor: "pointer", background: "transparent", color: "var(--primed-color-focus, #43a6aa)" }}
+                  style={{
+                    width: "100%",
+                    padding: "0.75rem",
+                    borderRadius: "0.375rem",
+                    fontWeight: 500,
+                    border: "1px solid var(--primed-color-focus, #43a6aa)",
+                    cursor: "pointer",
+                    background: "transparent",
+                    color: "var(--primed-color-focus, #43a6aa)",
+                  }}
                 >
                   Continue quiz
                 </button>

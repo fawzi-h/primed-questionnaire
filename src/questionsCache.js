@@ -8,6 +8,14 @@ function applyCustomisations(questions) {
   // Trim whitespace from all question keys (fixes e.g. " smoke-or-vape")
   questions.forEach(q => { q.key = (q.key || "").trim(); });
 
+  // Reorder questions: swap referral_source and treatment_goal_question
+  const referralIndex = questions.findIndex(q => q.key === "referral_source");
+  const treatmentIndex = questions.findIndex(q => q.key === "treatment_goal_question");
+  if (referralIndex !== -1 && treatmentIndex !== -1 && referralIndex < treatmentIndex) {
+    // Swap the positions
+    [questions[referralIndex], questions[treatmentIndex]] = [questions[treatmentIndex], questions[referralIndex]];
+  }
+
   return questions
     // Per-question transforms
     .map((q) => {
