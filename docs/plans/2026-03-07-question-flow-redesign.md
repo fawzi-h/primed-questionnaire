@@ -453,7 +453,7 @@ Add another case in the `switch` block. This renders a multi-select whose choice
 
 ```jsx
 case "treatment_goal_multi_select": {
-  const treatmentSlug = window.location.pathname.split("/")[2] || localStorage.getItem("treatment_plan") || "";
+  const treatmentSlug = window.location.pathname.split("/")[2] || sessionStorage.getItem("treatment_plan") || "";
   const questionKey = TREATMENT_QUESTION_MAP[treatmentSlug];
   const choices = questionKey ? (TREATMENT_QUESTION_CHOICES[questionKey] || []) : [];
   const questionText = questionKey ? getTreatmentQuestionText(questionKey) : question.question;

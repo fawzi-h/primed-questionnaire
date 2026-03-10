@@ -174,7 +174,7 @@ const styles = {
 //   ],
 // };
 
-// Key used to store and retrieve the questionnaire data in localStorage
+// Key used to store and retrieve the questionnaire data in sessionStorage
 const LOCAL_STORAGE_KEY = process.env.REACT_APP_SURVEY_LOCAL_STORAGE_KEY;
 const isComingSoon = process.env.REACT_APP_COMING_SOON === 'true';
 const SurveyQuestions = () => {
@@ -185,9 +185,9 @@ const SurveyQuestions = () => {
   const [answers, setAnswers] = useState({});
   const [questions, setQuestions] = useState([]); // questions fetched from API
 
-  // Retrieve the current question index from localStorage
+  // Retrieve the current question index from sessionStorage
   const [currentQuestion, setCurrentQuestion] = useState(() => {
-    const savedQuestion = localStorage.getItem(
+    const savedQuestion = sessionStorage.getItem(
       `${LOCAL_STORAGE_KEY}_currentQuestion`
     );
     return savedQuestion ? parseInt(savedQuestion, 10) : 0;
@@ -261,8 +261,7 @@ const SurveyQuestions = () => {
   //   "Muscle Strength And Support": require("../assets/images/muscle_strength_and_support.jpg"),
   //   "Injury Repair And Recovery": require("../assets/images/injury_repair_and_recovery.jpg"),
   //   "Sexual Health And Libido": require("../assets/images/libido_enhancement.jpg"),
-  //   // "Sexual Health And Libido": require("../assets/images/sexual_health_and_libido.jpg"),
-  //   "Hormone Therapy": require("../assets/images/hormone_therapy.jpg"),
+  //   "Women's Health": require("../assets/images/womens_health.jpg"),
   //   "Gut Health And Immunity": require("../assets/images/immunity.jpg"),
   //   "Cognitive Health": require("../assets/images/cognitive_enhancement.jpg"),
   //   "Skin Care": require("../assets/images/skin_care.jpg"),
@@ -337,7 +336,7 @@ const SurveyQuestions = () => {
 
     // Treatment questions — only show the one for selected treatment
     if (TREATMENT_QUESTION_KEYS.includes(key)) {
-      const slug = treatmentName || localStorage.getItem("treatment_plan") || "";
+      const slug = treatmentName || sessionStorage.getItem("treatment_plan") || "";
       const expectedKey = TREATMENT_QUESTION_MAP[slug];
       if (key !== expectedKey) return false;
     }
@@ -390,7 +389,7 @@ const SurveyQuestions = () => {
         email: email || prev.email || '',
         phone: phone || prev.phone || ''
       }));
-    const savedData = localStorage.getItem(
+    const savedData = sessionStorage.getItem(
       `${LOCAL_STORAGE_KEY}_${currentToken}`
     );
     if (savedData) {
@@ -424,10 +423,10 @@ const SurveyQuestions = () => {
     // setTreatmentName(getFormattedTreatmentName());
   }, [location, navigate, questions.length]);
 
-  // Save the current progress to localStorage, associated with the user's token
+  // Save the current progress to sessionStorage, associated with the user's token
   useEffect(() => {
     if (token) {
-      localStorage.setItem(
+      sessionStorage.setItem(
         `${LOCAL_STORAGE_KEY}_${token}`,
         JSON.stringify({
           answers,
@@ -438,18 +437,18 @@ const SurveyQuestions = () => {
     }
   }, [token, answers, currentQuestion]);
 
-  // Sweep all stale localStorage entries on mount
+  // Sweep all stale sessionStorage entries on mount
   useEffect(() => {
     const prefix = `${LOCAL_STORAGE_KEY}_`;
-    for (let i = localStorage.length - 1; i >= 0; i--) {
-      const key = localStorage.key(i);
+    for (let i = sessionStorage.length - 1; i >= 0; i--) {
+      const key = sessionStorage.key(i);
       if (key && key.startsWith(prefix)) {
         try {
-          const { timestamp } = JSON.parse(localStorage.getItem(key));
+          const { timestamp } = JSON.parse(sessionStorage.getItem(key));
           if (Date.now() - timestamp > 86400000) {
-            localStorage.removeItem(key);
+            sessionStorage.removeItem(key);
           }
-        } catch { localStorage.removeItem(key); }
+        } catch { sessionStorage.removeItem(key); }
       }
     }
   }, []);
@@ -1503,8 +1502,8 @@ const SurveyQuestions = () => {
       setSurveySubmitted(true);
       navigate(`${location.pathname}?${searchParams.toString()}`);
       sessionStorage.clear();
-      localStorage.removeItem(LOCAL_STORAGE_KEY);
-      localStorage.removeItem(`${LOCAL_STORAGE_KEY}_${token}`);
+      sessionStorage.removeItem(LOCAL_STORAGE_KEY);
+      sessionStorage.removeItem(`${LOCAL_STORAGE_KEY}_${token}`);
     } catch (error) {
       navigate("/page/error");
     } finally {
@@ -1522,8 +1521,8 @@ const SurveyQuestions = () => {
       searchParams.set("quiz_status", "saved");
       navigate(`${location.pathname}?${searchParams.toString()}`);
       sessionStorage.clear();
-      localStorage.removeItem(LOCAL_STORAGE_KEY);
-      localStorage.removeItem(`${LOCAL_STORAGE_KEY}_${token}`);
+      sessionStorage.removeItem(LOCAL_STORAGE_KEY);
+      sessionStorage.removeItem(`${LOCAL_STORAGE_KEY}_${token}`);
     } catch (error) {
       navigate("/page/error");
     } finally {
@@ -1676,8 +1675,8 @@ const SurveyQuestions = () => {
 
   // Stop quiz and render the pregnancy-related alert screen
   if (showAlert) {
-    localStorage.removeItem(LOCAL_STORAGE_KEY);
-    localStorage.removeItem(`${LOCAL_STORAGE_KEY}_${token}`);
+    sessionStorage.removeItem(LOCAL_STORAGE_KEY);
+    sessionStorage.removeItem(`${LOCAL_STORAGE_KEY}_${token}`);
     sessionStorage.clear();
 
     return (
@@ -1711,8 +1710,8 @@ const SurveyQuestions = () => {
   }
 
   if (showUnderAgeMessage) {
-    localStorage.removeItem(LOCAL_STORAGE_KEY);
-    localStorage.removeItem(`${LOCAL_STORAGE_KEY}_${token}`);
+    sessionStorage.removeItem(LOCAL_STORAGE_KEY);
+    sessionStorage.removeItem(`${LOCAL_STORAGE_KEY}_${token}`);
     sessionStorage.clear();
     return (
       <div className="questionnaire-wrapper">

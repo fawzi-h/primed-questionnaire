@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useSurveyConfig } from "../SurveyConfig";
 
@@ -7,7 +7,36 @@ const Questionnaire = ({ onStartQuiz }) => {
   const { treatmentName, id } = useParams();
   const { submitBtnClass } = useSurveyConfig();
 
-  console.log("[PrimedSurvey] Questionnaire rendered — treatmentName:", treatmentName, "| id:", id);
+  useEffect(() => {
+    const parent = document.getElementById("primed-survey");
+
+    if (!parent) return;
+
+    const treatmentFromDiv = parent.dataset.treatmentName;
+    const idFromDiv = parent.dataset.treatmentId;
+
+    if (treatmentFromDiv && idFromDiv) {
+      console.log(
+        "[PrimedSurvey] Treatment found in parent div:",
+        treatmentFromDiv,
+        idFromDiv
+      );
+
+      // optionally store for later usage
+      sessionStorage.setItem("treatment_plan", treatmentFromDiv);
+
+      navigate(`/questionnaire/${treatmentFromDiv}/${idFromDiv}/start-quiz`, {
+        replace: true,
+      });
+    }
+  }, [navigate]);
+
+  console.log(
+    "[PrimedSurvey] Questionnaire rendered — treatmentName:",
+    treatmentName,
+    "| id:",
+    id
+  );
 
   const handleStart = () => {
     if (onStartQuiz) onStartQuiz();
@@ -21,18 +50,24 @@ const Questionnaire = ({ onStartQuiz }) => {
           <div className="questionnaire-card">
             <div className="card-body">
               <h3 className="questionnaire-title">Welcome To Your Assessment</h3>
+
               <p className="questionnaire-description">
-                This assessment takes approximately 10 minutes to complete. Your answers help our
-                practitioners provide you with the most suitable treatment plan.
+                This assessment takes approximately 3-5 minutes to complete.
+                Your answers help our practitioners provide you with the most
+                suitable treatment plan.
               </p>
+
               <p className="questionnaire-notice">
-                Please answer all questions honestly. Your responses are kept strictly confidential
-                and will only be shared with your treating practitioner.
+                Please answer all questions honestly. Your responses are kept
+                strictly confidential and will only be shared with your
+                treating practitioner.
               </p>
+
               <p className="questionnaire-notice">
-                By proceeding, you confirm that you are 18 years of age or older and agree to
-                Primed Clinic's Terms &amp; Conditions and Privacy Policy.
+                By proceeding, you confirm that you are 18 years of age or older
+                and agree to Primed Clinic's Terms & Conditions and Privacy Policy.
               </p>
+
               <button
                 onClick={handleStart}
                 className={`questionairre-startBtn${submitBtnClass ? ` ${submitBtnClass}` : ""}`}

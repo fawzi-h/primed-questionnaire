@@ -24,6 +24,7 @@
   display: flex;
   flex-direction: column;
   min-height: 100%;
+  width: 100%;
   background: var(--primed-color-bg, #ffffff);
   font-family: var(--primed-font-body, 'Stacksanstext', sans-serif);
   color: var(--primed-color-text, #131313);
@@ -38,7 +39,7 @@
 }
 
 .sq-content-area {
-  flex: 1;
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
