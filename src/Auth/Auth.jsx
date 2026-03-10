@@ -10,8 +10,8 @@ export const AuthProvider = ({ children }) => {
   // State to track if the user is authenticated
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     // Check local storage for saved authentication status and expiration time
-    const savedAuth = JSON.parse(localStorage.getItem("isAuthenticated"));
-    const expirationTime = localStorage.getItem("expirationTime");
+    const savedAuth = JSON.parse(sessionStorage.getItem("isAuthenticated"));
+    const expirationTime = sessionStorage.getItem("expirationTime");
     // Determine if the current date is less than the saved expiration time
     if (savedAuth && expirationTime) {
       return new Date() < new Date(expirationTime);
@@ -29,24 +29,24 @@ export const AuthProvider = ({ children }) => {
     const expirationTime = new Date();
     expirationTime.setMinutes(expirationTime.getMinutes() + 30);
     // Save authentication status and expiration time in local storage
-    localStorage.setItem("isAuthenticated", true);
-    localStorage.setItem("expirationTime", expirationTime);
+    sessionStorage.setItem("isAuthenticated", true);
+    sessionStorage.setItem("expirationTime", expirationTime);
     setIsAuthenticated(true);
   };
 
   // Function to log the user out
   const logout = useCallback(() => {
     // Remove authentication status and expiration time from local storage
-    localStorage.removeItem("isAuthenticated");
-    localStorage.removeItem("expirationTime");
+    sessionStorage.removeItem("isAuthenticated");
+    sessionStorage.removeItem("expirationTime");
     setIsAuthenticated(false);
-    navigateRef.current("/admin/login");
+    navigateRef.current("/");
   }, []);
 
   // Effect to check for expiration of authentication every second
   useEffect(() => {
     const interval = setInterval(() => {
-      const expirationTime = localStorage.getItem("expirationTime");
+      const expirationTime = sessionStorage.getItem("expirationTime");
       if (expirationTime && new Date() > new Date(expirationTime)) {
         logout();
       }

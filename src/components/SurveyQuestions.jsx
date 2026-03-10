@@ -33,7 +33,10 @@ import {
 } from "@reach/combobox";
 import "@reach/combobox/styles.css";
 
-const LOCAL_STORAGE_KEY = process.env.REACT_APP_SURVEY_LOCAL_STORAGE_KEY;
+const LOCAL_STORAGE_KEY =
+  process.env.NODE_ENV === "production"
+    ? window.location.hostname
+    : process.env.REACT_APP_SURVEY_LOCAL_STORAGE_KEY;
 
 /* ── Inline SVG helpers ───────────────────────────────────────── */
 
@@ -55,7 +58,7 @@ const SurveyQuestions = () => {
   const [answers, setAnswers] = useState({});
   const [questions, setQuestions] = useState([]);
   const [currentQuestion, setCurrentQuestion] = useState(() => {
-    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_currentQuestion`);
+    const saved = sessionStorage.getItem(`${LOCAL_STORAGE_KEY}_currentQuestion`);
     return saved ? parseInt(saved, 10) : 0;
   });
   const [showAlert, setShowAlert] = useState(false);
@@ -121,7 +124,7 @@ const SurveyQuestions = () => {
 
   useEffect(() => {
     if (token) {
-      localStorage.setItem(
+      sessionStorage.setItem(
         `${LOCAL_STORAGE_KEY}_${token}`,
         JSON.stringify({ answers, currentQuestion, timestamp: Date.now() })
       );
@@ -157,7 +160,7 @@ const SurveyQuestions = () => {
     if (key === "medicare_expiry" || key === "individual_reference_number") return false;
     if (key === "consent_provided") return false;
     if (TREATMENT_QUESTION_KEYS.includes(key)) {
-      const slug = treatmentName || localStorage.getItem("treatment_plan") || "";
+      const slug = treatmentName || sessionStorage.getItem("treatment_plan") || "";
       const expectedKey = TREATMENT_QUESTION_MAP[slug];
       if (key !== expectedKey) return false;
     }
@@ -172,7 +175,7 @@ const SurveyQuestions = () => {
       navigate(`?token=${currentToken}`, { replace: true });
     }
     setToken(currentToken);
-    const savedData = localStorage.getItem(`${LOCAL_STORAGE_KEY}_${currentToken}`);
+    const savedData = sessionStorage.getItem(`${LOCAL_STORAGE_KEY}_${currentToken}`);
     if (savedData) {
       try {
         const { answers: savedAnswers, currentQuestion: savedQ } = JSON.parse(savedData);
@@ -187,13 +190,13 @@ const SurveyQuestions = () => {
 
   useEffect(() => {
     const prefix = `${LOCAL_STORAGE_KEY}_`;
-    for (let i = localStorage.length - 1; i >= 0; i--) {
-      const key = localStorage.key(i);
+    for (let i = sessionStorage.length - 1; i >= 0; i--) {
+      const key = sessionStorage.key(i);
       if (key && key.startsWith(prefix)) {
         try {
-          const { timestamp } = JSON.parse(localStorage.getItem(key));
-          if (Date.now() - timestamp > 86400000) localStorage.removeItem(key);
-        } catch { localStorage.removeItem(key); }
+          const { timestamp } = JSON.parse(sessionStorage.getItem(key));
+          if (Date.now() - timestamp > 86400000) sessionStorage.removeItem(key);
+        } catch { sessionStorage.removeItem(key); }
       }
     }
   }, []);
@@ -322,8 +325,8 @@ const SurveyQuestions = () => {
       setSurveySubmitted(true);
       navigate(`${location.pathname}?${searchParams.toString()}`);
       sessionStorage.clear();
-      localStorage.removeItem(LOCAL_STORAGE_KEY);
-      localStorage.removeItem(`${LOCAL_STORAGE_KEY}_${token}`);
+      sessionStorage.removeItem(LOCAL_STORAGE_KEY);
+      sessionStorage.removeItem(`${LOCAL_STORAGE_KEY}_${token}`);
     } catch (error) {
       const detail = error.response?.data?.detail || error.response?.data || error.message;
       console.error("[Survey submit error]", detail);
@@ -342,8 +345,8 @@ const SurveyQuestions = () => {
       searchParams.set("quiz_status", "saved");
       navigate(`${location.pathname}?${searchParams.toString()}`);
       sessionStorage.clear();
-      localStorage.removeItem(LOCAL_STORAGE_KEY);
-      localStorage.removeItem(`${LOCAL_STORAGE_KEY}_${token}`);
+      sessionStorage.removeItem(LOCAL_STORAGE_KEY);
+      sessionStorage.removeItem(`${LOCAL_STORAGE_KEY}_${token}`);
     } catch (error) {
       const detail = error.response?.data?.detail || error.response?.data || error.message;
       console.error("[Survey save error]", detail);
@@ -803,8 +806,8 @@ const SurveyQuestions = () => {
   }
 
   if (showAlert) {
-    localStorage.removeItem(LOCAL_STORAGE_KEY);
-    localStorage.removeItem(`${LOCAL_STORAGE_KEY}_${token}`);
+    sessionStorage.removeItem(LOCAL_STORAGE_KEY);
+    sessionStorage.removeItem(`${LOCAL_STORAGE_KEY}_${token}`);
     sessionStorage.clear();
     return (
       <div className="questionnaire-wrapper">
@@ -832,8 +835,8 @@ const SurveyQuestions = () => {
   }
 
   if (showUnderAgeMessage) {
-    localStorage.removeItem(LOCAL_STORAGE_KEY);
-    localStorage.removeItem(`${LOCAL_STORAGE_KEY}_${token}`);
+    sessionStorage.removeItem(LOCAL_STORAGE_KEY);
+    sessionStorage.removeItem(`${LOCAL_STORAGE_KEY}_${token}`);
     sessionStorage.clear();
     return (
       <div className="questionnaire-wrapper">
@@ -842,6 +845,7 @@ const SurveyQuestions = () => {
             <div className="questionnaire-card">
               <div className="card-body">
                 <div style={{ fontSize: "52px", textAlign: "center", marginBottom: "8px" }}>👩‍⚕️</div>
+
                 <h3 className="questionnaire-title">We're Unable to Proceed</h3>
                 <p className="questionnaire-description survey-questionnaire-description">
                   Thank you for taking a moment to complete our initial screening — we truly appreciate it.

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSurveyConfig } from "../SurveyConfig";
 import { validateImageUrl } from "../utils/validation";
@@ -12,11 +12,10 @@ const treatments = [
   { slug: "weight-loss",             id: 2,  label: "Weight Loss",               img: CDN + "69896132f26c7f07352002a4_671a443699cfb0f4ec724439_Screenshot%25202024-09-12%2520at%252018.26.59%2520(1).webp-1.webp" },
   { slug: "injury-repair-recovery",  id: 4,  label: "Injury Repair & Recovery",  img: CDN + "6993e3693d9de807ab900e79_Injury%20Recovery%20Sports%20Physio%20(1).webp" },
   { slug: "sexual-health-libido",    id: 5,  label: "Sexual Health & Libido",    img: CDN + "698eb32fa4fed06c3c5f760e_spa%20shot.webp" },
-  { slug: "hormone-therapy",         id: 7,  label: "Hormone Therapy",           img: CDN + "6993e4f3c649c536843ad00f_Thyroid%20Disease%20Hypothyroidism%20Jan%208%202026%20(1).webp" },
   { slug: "gut-health-immunity",     id: 8,  label: "Gut Health & Immunity",     img: CDN + "6993e4995da0f84ba384d985_Gut%20Health%20.webp" },
   { slug: "cognitive-support",       id: 9,  label: "Cognitive Support",         img: CDN + "698d1570ede5aa07cb47dffe_Placeholder%20Image-1.webp" },
   { slug: "skin-care",               id: 10, label: "Skin Care",                 img: CDN + "698d5535b9a36d3ce1bf4b31_Skin%20care.webp" },
-  { slug: "womens-health",           id: 11, label: "Women's Health",            img: CDN + "6993e4f3c649c536843ad00f_Thyroid%20Disease%20Hypothyroidism%20Jan%208%202026%20(1).webp" },
+  { slug: "womens-health",           id: 11, label: "Women's Health",            img: CDN + "69ac208fbfbefc240c2e45c1_Women-health.jpeg" },
 ];
 
 const ArrowIcon = () => (
@@ -39,15 +38,20 @@ const TreatmentSelection = () => {
     ? treatmentsOverride
     : treatments;
 
-  const handleSelect = (slug, id, label) => {
-    setSelected({ slug, id, label });
-    try {
-      localStorage.setItem("treatment_plan", slug);
-      localStorage.setItem("treatment_plan_id", id);
-    } catch (err) {
-      console.warn("Could not save treatment plan to localStorage:", err);
-    }
-  };
+const handleSelect = (slug, id, label) => {
+  setSelected({ slug, id, label });
+
+  try {
+    sessionStorage.setItem("treatment_plan", slug);
+    sessionStorage.setItem("treatment_plan_id", id);
+  } catch (err) {
+    console.warn("Could not save treatment plan to sessionStorage:", err);
+  }
+
+  setTimeout(() => {
+    navigate(`/questionnaire/${slug}/${id}`);
+  }, 400);
+};
 
   const handleBegin = () => {
     if (selected) {
@@ -95,14 +99,6 @@ const TreatmentSelection = () => {
           })}
         </div>
       </div>
-
-      {selected && (
-        <div className="treatment-cta-bar" key={selected.slug}>
-          <button className="treatment-cta-btn" onClick={handleBegin}>
-            Begin Assessment
-          </button>
-        </div>
-      )}
     </div>
   );
 };
