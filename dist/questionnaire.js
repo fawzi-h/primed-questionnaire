@@ -522,9 +522,13 @@ body .questionCheckbox {
   accent-color: var(--primed-color-checkbox, #0d9488) !important;
 }
 @media (max-width: 500px) {
-  body .questionairre-wrapper .questionairre-container .questionairre-card .card-body .questionairre-title {
-    line-height: 1 !important;
-    font-size: 28px !important;
+  body .questionnaire-wrapper .questionnaire-container .questionnaire-card .card-body .questionnaire-title {
+    line-height: 1.05;
+    font-size: 28px;
+  }
+
+  body .questionnaire-wrapper .questionnaire-container {
+    margin-top: 24px;
   }
 }
 /* coming soon */
@@ -1713,8 +1717,36 @@ h2.react-datepicker__current-month {
 
 /* Prevent browser-enforced minimum width on date inputs on Safari/Chrome mobile */
 input[type="date"].sq-input {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   overflow: hidden;
   font-size: 16px;
+  padding-right: 48px;
+  color-scheme: light;
+}
+
+/* Restore calendar icon hidden by appearance: none */
+input[type="date"].sq-input::-webkit-calendar-picker-indicator {
+  display: block;
+  opacity: 1;
+  cursor: pointer;
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  padding: 0;
+  transform: translateY(-50%);
+}
+
+input[type="date"].sq-input::-webkit-date-and-time-value {
+  text-align: left;
 }
 
 .sq-date-input {
@@ -2022,6 +2054,10 @@ input[type="date"].sq-input {
     font-size: 16px;
   }
 
+  input[type="date"].sq-input {
+    padding: 14px 40px 14px 12px;
+  }
+
   .sq-textarea {
     padding: 14px 16px;
     font-size: 16px;
@@ -2226,6 +2262,11 @@ input[type="date"].sq-input {
   width: 100%;
   text-align: left;
   padding: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
+  background-clip: padding-box;
+  box-sizing: border-box;
   transition:
     border-color 0.25s ease,
     box-shadow 0.35s ease,
@@ -2358,10 +2399,12 @@ input[type="date"].sq-input {
   gap: 8px;
   padding: 14px 14px;
   position: relative;
+  min-width: 0;
 }
 
 .treatment-card-label {
   flex: 1;
+  min-width: 0;
   font-size: 14px;
   font-weight: 600;
   color: var(--primed-color-text, #131313);
@@ -2443,24 +2486,30 @@ input[type="date"].sq-input {
 
   .treatment-card {
     flex-direction: row;
-    height: 80px;
+    height: 96px;
   }
 
   .treatment-card-image-wrap {
-    width: 100px;
+    width: 92px;
     height: 100%;
     flex-shrink: 0;
     order: 1;
   }
 
   .treatment-card-label-area {
-    padding: 10px 10px;
+    padding: 12px 40px 12px 12px;
     flex: 1;
     order: 2;
   }
 
   .treatment-card-label {
     font-size: 13px;
+    line-height: 1.25;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
   }
 
   .treatment-card-check {
@@ -2491,6 +2540,20 @@ input[type="date"].sq-input {
     text-align: center;
     padding: 14px 24px;
   }
+}
+
+/* Repeat critical border rules with higher specificity so host-page/button
+   resets on embedded mobile Safari do not wipe out the card border. */
+.treatment-selection-wrapper .treatment-card {
+  border: 2px solid var(--primed-color-fog, #E5ECEC) !important;
+}
+
+.treatment-selection-wrapper .treatment-card:hover {
+  border-color: var(--primed-color-focus, #43a6aa) !important;
+}
+
+.treatment-selection-wrapper .treatment-card--selected {
+  border-color: var(--primed-color-primary, #014548) !important;
 }
 
 @keyframes ts-accentBarVertical {
