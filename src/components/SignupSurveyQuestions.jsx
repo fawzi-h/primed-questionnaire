@@ -174,7 +174,7 @@ const styles = {
 //   ],
 // };
 
-// Key used to store and retrieve the questionnaire data in localStorage
+// Key used to store and retrieve the questionnaire data in sessionStorage
 const LOCAL_STORAGE_KEY = process.env.REACT_APP_SURVEY_LOCAL_STORAGE_KEY;
 const isComingSoon = process.env.REACT_APP_COMING_SOON === 'true';
 const SurveyQuestions = () => {
@@ -185,9 +185,9 @@ const SurveyQuestions = () => {
   const [answers, setAnswers] = useState({});
   const [questions, setQuestions] = useState([]); // questions fetched from API
 
-  // Retrieve the current question index from localStorage
+  // Retrieve the current question index from sessionStorage
   const [currentQuestion, setCurrentQuestion] = useState(() => {
-    const savedQuestion = localStorage.getItem(
+    const savedQuestion = sessionStorage.getItem(
       `${LOCAL_STORAGE_KEY}_currentQuestion`
     );
     return savedQuestion ? parseInt(savedQuestion, 10) : 0;
@@ -254,6 +254,31 @@ const SurveyQuestions = () => {
   const hidePopup = () => setIsVisible(false);
   const dropdownRef = useRef(null);
 
+  const formatDateInputValue = (date) => {
+    const year = date.getFullYear();
+    const month = `${date.getMonth() + 1}`.padStart(2, "0");
+    const day = `${date.getDate()}`.padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const getAdultDobMaxDate = () => {
+    const cutoff = new Date();
+    cutoff.setFullYear(cutoff.getFullYear() - 18);
+    return formatDateInputValue(cutoff);
+  };
+
+  const isAdultDob = (value) => {
+    if (!value) return false;
+
+    const [year, month, day] = value.split("-").map(Number);
+    if (!year || !month || !day) return false;
+
+    const selectedDate = new Date(year, month - 1, day);
+    if (Number.isNaN(selectedDate.getTime())) return false;
+
+    return value <= getAdultDobMaxDate();
+  };
+
   // Map treatment names to imported images
   // const treatmentImages = {
   //   "Anti Ageing And Vitality": require("../assets/images/anti_ageing_vitality2.jpg"),
@@ -261,8 +286,7 @@ const SurveyQuestions = () => {
   //   "Muscle Strength And Support": require("../assets/images/muscle_strength_and_support.jpg"),
   //   "Injury Repair And Recovery": require("../assets/images/injury_repair_and_recovery.jpg"),
   //   "Sexual Health And Libido": require("../assets/images/libido_enhancement.jpg"),
-  //   // "Sexual Health And Libido": require("../assets/images/sexual_health_and_libido.jpg"),
-  //   "Hormone Therapy": require("../assets/images/hormone_therapy.jpg"),
+  //   "Women's Health": require("../assets/images/womens_health.jpg"),
   //   "Gut Health And Immunity": require("../assets/images/immunity.jpg"),
   //   "Cognitive Health": require("../assets/images/cognitive_enhancement.jpg"),
   //   "Skin Care": require("../assets/images/skin_care.jpg"),
@@ -337,7 +361,7 @@ const SurveyQuestions = () => {
 
     // Treatment questions — only show the one for selected treatment
     if (TREATMENT_QUESTION_KEYS.includes(key)) {
-      const slug = treatmentName || localStorage.getItem("treatment_plan") || "";
+      const slug = treatmentName || sessionStorage.getItem("treatment_plan") || "";
       const expectedKey = TREATMENT_QUESTION_MAP[slug];
       if (key !== expectedKey) return false;
     }
@@ -390,7 +414,7 @@ const SurveyQuestions = () => {
         email: email || prev.email || '',
         phone: phone || prev.phone || ''
       }));
-    const savedData = localStorage.getItem(
+    const savedData = sessionStorage.getItem(
       `${LOCAL_STORAGE_KEY}_${currentToken}`
     );
     if (savedData) {
@@ -424,10 +448,10 @@ const SurveyQuestions = () => {
     // setTreatmentName(getFormattedTreatmentName());
   }, [location, navigate, questions.length]);
 
-  // Save the current progress to localStorage, associated with the user's token
+  // Save the current progress to sessionStorage, associated with the user's token
   useEffect(() => {
     if (token) {
-      localStorage.setItem(
+      sessionStorage.setItem(
         `${LOCAL_STORAGE_KEY}_${token}`,
         JSON.stringify({
           answers,
@@ -438,18 +462,18 @@ const SurveyQuestions = () => {
     }
   }, [token, answers, currentQuestion]);
 
-  // Sweep all stale localStorage entries on mount
+  // Sweep all stale sessionStorage entries on mount
   useEffect(() => {
     const prefix = `${LOCAL_STORAGE_KEY}_`;
-    for (let i = localStorage.length - 1; i >= 0; i--) {
-      const key = localStorage.key(i);
+    for (let i = sessionStorage.length - 1; i >= 0; i--) {
+      const key = sessionStorage.key(i);
       if (key && key.startsWith(prefix)) {
         try {
-          const { timestamp } = JSON.parse(localStorage.getItem(key));
+          const { timestamp } = JSON.parse(sessionStorage.getItem(key));
           if (Date.now() - timestamp > 86400000) {
-            localStorage.removeItem(key);
+            sessionStorage.removeItem(key);
           }
-        } catch { localStorage.removeItem(key); }
+        } catch { sessionStorage.removeItem(key); }
       }
     }
   }, []);
@@ -553,6 +577,10 @@ const SurveyQuestions = () => {
       if (!Array.isArray(answer) || answer.length === 0) return false;
       if (answer.length === 1 && answer[0] === "Other") return !!otherTexts[question.key];
       return true;
+    }
+
+    if (question.type === "date_input") {
+      return isAdultDob(answer);
     }
 
     return answer !== undefined && answer !== "";
@@ -1145,6 +1173,8 @@ const SurveyQuestions = () => {
               minDate={new Date()}
               className={`form-control${inputClass ? ` ${inputClass}` : ""} border rounded px-2 py-2 w-full`}
               disabled={medicareCheckbox}
+              portalId="sq-datepicker-portal"
+              popperPlacement="bottom-start"
             />
             {errors["medicare_expiry"] && (
               <small className="text-danger">{errors["medicare_expiry"]}</small>
@@ -1392,10 +1422,7 @@ const SurveyQuestions = () => {
         );
 
       case "date_input":
-        const today = new Date();
-        const maxDate = new Date(today.setFullYear(today.getFullYear() - 18))
-          .toISOString()
-          .split("T")[0];
+        const maxDate = getAdultDobMaxDate();
         return (
           <div className="mb-4 form-outline">
             <h4 className={`card-question mt-5${labelClass ? ` ${labelClass}` : ""}`}>
@@ -1405,9 +1432,22 @@ const SurveyQuestions = () => {
               type="date"
               max={maxDate}
               value={answers[question.key] || ""}
-              onChange={(e) => handleAnswer(question.key, e.target.value)} // Use question.key here
+              onChange={(e) => {
+                const value = e.target.value;
+                handleAnswer(question.key, value);
+                setErrors((prev) => ({
+                  ...prev,
+                  [question.key]:
+                    value && !isAdultDob(value)
+                      ? "You must be at least 18 years old."
+                      : null,
+                }));
+              }}
               className={`form-control${inputClass ? ` ${inputClass}` : ""} border rounded px-2 py-2`}
             />
+            {errors[question.key] && (
+              <p className="text-danger mt-2 mb-0">{errors[question.key]}</p>
+            )}
           </div>
         );
 
@@ -1503,8 +1543,8 @@ const SurveyQuestions = () => {
       setSurveySubmitted(true);
       navigate(`${location.pathname}?${searchParams.toString()}`);
       sessionStorage.clear();
-      localStorage.removeItem(LOCAL_STORAGE_KEY);
-      localStorage.removeItem(`${LOCAL_STORAGE_KEY}_${token}`);
+      sessionStorage.removeItem(LOCAL_STORAGE_KEY);
+      sessionStorage.removeItem(`${LOCAL_STORAGE_KEY}_${token}`);
     } catch (error) {
       navigate("/page/error");
     } finally {
@@ -1522,8 +1562,8 @@ const SurveyQuestions = () => {
       searchParams.set("quiz_status", "saved");
       navigate(`${location.pathname}?${searchParams.toString()}`);
       sessionStorage.clear();
-      localStorage.removeItem(LOCAL_STORAGE_KEY);
-      localStorage.removeItem(`${LOCAL_STORAGE_KEY}_${token}`);
+      sessionStorage.removeItem(LOCAL_STORAGE_KEY);
+      sessionStorage.removeItem(`${LOCAL_STORAGE_KEY}_${token}`);
     } catch (error) {
       navigate("/page/error");
     } finally {
@@ -1676,8 +1716,8 @@ const SurveyQuestions = () => {
 
   // Stop quiz and render the pregnancy-related alert screen
   if (showAlert) {
-    localStorage.removeItem(LOCAL_STORAGE_KEY);
-    localStorage.removeItem(`${LOCAL_STORAGE_KEY}_${token}`);
+    sessionStorage.removeItem(LOCAL_STORAGE_KEY);
+    sessionStorage.removeItem(`${LOCAL_STORAGE_KEY}_${token}`);
     sessionStorage.clear();
 
     return (
@@ -1711,8 +1751,8 @@ const SurveyQuestions = () => {
   }
 
   if (showUnderAgeMessage) {
-    localStorage.removeItem(LOCAL_STORAGE_KEY);
-    localStorage.removeItem(`${LOCAL_STORAGE_KEY}_${token}`);
+    sessionStorage.removeItem(LOCAL_STORAGE_KEY);
+    sessionStorage.removeItem(`${LOCAL_STORAGE_KEY}_${token}`);
     sessionStorage.clear();
     return (
       <div className="questionnaire-wrapper">

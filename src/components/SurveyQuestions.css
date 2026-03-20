@@ -24,6 +24,7 @@
   display: flex;
   flex-direction: column;
   min-height: 100%;
+  width: 100%;
   background: var(--primed-color-bg, #ffffff);
   font-family: var(--primed-font-body, 'Stacksanstext', sans-serif);
   color: var(--primed-color-text, #131313);
@@ -38,7 +39,7 @@
 }
 
 .sq-content-area {
-  flex: 1;
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -306,6 +307,8 @@
 
 .sq-input {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   padding: 16px 20px;
   border-radius: 14px;
   border: 2px solid var(--primed-color-fog, #E5ECEC);
@@ -329,6 +332,63 @@
 .sq-input:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* Prevent browser-enforced minimum width on date inputs on Safari/Chrome mobile */
+input[type="date"].sq-input {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+  font-size: 16px;
+  padding-right: 48px;
+  color-scheme: light;
+}
+
+/* Restore calendar icon hidden by appearance: none */
+input[type="date"].sq-input::-webkit-calendar-picker-indicator {
+  display: block;
+  opacity: 1;
+  cursor: pointer;
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  padding: 0;
+  transform: translateY(-50%);
+}
+
+input[type="date"].sq-input::-webkit-date-and-time-value {
+  text-align: left;
+}
+
+.sq-date-input {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  -webkit-appearance: none;
+  appearance: none;
+  font-size: 16px;
+  line-height: 1.2;
+  overflow: hidden;
+}
+
+@media (max-width: 768px) {
+  .sq-date-input {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    padding: 16px 14px;
+    font-size: 16px;
+  }
 }
 
 .sq-textarea {
@@ -383,8 +443,10 @@
 }
 
 .sq-medicare-image {
+  display: block;
   max-width: 210px;
   border-radius: 8px;
+  margin: 0 auto;
 }
 
 .sq-medicare-checkbox-row {
@@ -611,6 +673,10 @@
     font-size: 16px;
   }
 
+  input[type="date"].sq-input {
+    padding: 14px 40px 14px 12px;
+  }
+
   .sq-textarea {
     padding: 14px 16px;
     font-size: 16px;
@@ -623,4 +689,74 @@
   .sq-enter-hint {
     display: none;
   }
+}
+
+
+/* ── Datepicker layout ─────────────────────────── */
+
+.sq-wrapper,
+.sq-content-area,
+.sq-question-container,
+.sq-answer-area {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.react-datepicker-wrapper,
+.react-datepicker__input-container {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+}
+
+.react-datepicker__input-container input,
+.sq-date-input {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  overflow: hidden !important;
+  font-size: 16px !important;
+}
+
+/* Popper uses position:fixed (strategy="fixed") so it escapes overflow containers.
+   Constrain its visual width on narrow viewports. */
+@media (max-width: 480px) {
+  .react-datepicker-popper {
+    max-width: calc(100vw - 32px) !important;
+  }
+}
+
+/* ── Host-page isolation ─────────────────────────────────────
+   Higher-specificity rules to protect critical borders from being
+   overridden by host-page CSS (global resets, Bootstrap, etc.).
+   These intentionally repeat the border rules with .sq-wrapper
+   as a parent so they win any !important specificity tie. */
+
+.sq-wrapper .sq-chip {
+  border: 2px solid var(--primed-color-fog, #E5ECEC) !important;
+}
+
+.sq-wrapper .sq-chip:hover {
+  border-color: var(--primed-color-focus, #43a6aa) !important;
+}
+
+.sq-wrapper .sq-chip--selected {
+  border-color: var(--primed-color-primary, #014548) !important;
+}
+
+.sq-wrapper .sq-mcq-card {
+  border: 2px solid var(--primed-color-fog, #E5ECEC) !important;
+}
+
+.sq-wrapper .sq-mcq-card:hover {
+  border-color: var(--primed-color-focus, #43a6aa) !important;
+}
+
+.sq-wrapper .sq-mcq-card--selected {
+  border-color: var(--primed-color-primary, #014548) !important;
 }

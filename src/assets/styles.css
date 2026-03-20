@@ -510,9 +510,13 @@ body .questionCheckbox {
   accent-color: var(--primed-color-checkbox, #0d9488) !important;
 }
 @media (max-width: 500px) {
-  body .questionairre-wrapper .questionairre-container .questionairre-card .card-body .questionairre-title {
-    line-height: 1 !important;
-    font-size: 28px !important;
+  body .questionnaire-wrapper .questionnaire-container .questionnaire-card .card-body .questionnaire-title {
+    line-height: 1.05;
+    font-size: 28px;
+  }
+
+  body .questionnaire-wrapper .questionnaire-container {
+    margin-top: 24px;
   }
 }
 /* coming soon */
