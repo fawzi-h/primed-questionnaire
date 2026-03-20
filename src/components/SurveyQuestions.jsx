@@ -655,6 +655,26 @@ const SurveyQuestions = () => {
     setProgress(((nextIndex + 1) / questions.length) * 100);
   }, [questions.length]);
 
+  const visibleIndices = getOrderedVisible();
+
+  const currentVisibleIndex = visibleIndices.indexOf(currentQuestion);
+  const totalVisible = visibleIndices.length;
+  const currentQ = questions[currentQuestion];
+  const answered = isQuestionAnswered(currentQuestion);
+
+  const currentSection = currentQ?.section;
+  const prevVisibleIdx =
+    currentVisibleIndex > 0 ? visibleIndices[currentVisibleIndex - 1] : -1;
+  const prevSection =
+    prevVisibleIdx >= 0 ? questions[prevVisibleIdx]?.section : null;
+  const showSectionBadge = currentSection && currentSection !== prevSection;
+
+  const consentQuestion = questions.find((q) => q.key === "consent_provided");
+  const consentStatements = consentQuestion?.choices || [];
+  const allConsentChecked =
+    consentChecked.length === consentStatements.length &&
+    consentChecked.every(Boolean);
+
   const handleNext = useCallback(() => {
     debug("handleNext:start", {
       currentQuestion,
@@ -834,26 +854,6 @@ const SurveyQuestions = () => {
     const prevVisibleIdx = currentVisibleIndex - 1;
     if (prevVisibleIdx >= 0) goTo(visibleIndices[prevVisibleIdx]);
   };
-
-  const visibleIndices = getOrderedVisible();
-
-  const currentVisibleIndex = visibleIndices.indexOf(currentQuestion);
-  const totalVisible = visibleIndices.length;
-  const currentQ = questions[currentQuestion];
-  const answered = isQuestionAnswered(currentQuestion);
-
-  const currentSection = currentQ?.section;
-  const prevVisibleIdx =
-    currentVisibleIndex > 0 ? visibleIndices[currentVisibleIndex - 1] : -1;
-  const prevSection =
-    prevVisibleIdx >= 0 ? questions[prevVisibleIdx]?.section : null;
-  const showSectionBadge = currentSection && currentSection !== prevSection;
-
-  const consentQuestion = questions.find((q) => q.key === "consent_provided");
-  const consentStatements = consentQuestion?.choices || [];
-  const allConsentChecked =
-    consentChecked.length === consentStatements.length &&
-    consentChecked.every(Boolean);
 
   const renderMCQ = (question, index) => {
     const canAutoAdvance = question.choices.length <= 3 || question.key === "exercise" || question.key === "referral_source";

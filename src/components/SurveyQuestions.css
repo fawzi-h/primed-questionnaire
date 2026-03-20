@@ -26,7 +26,7 @@
   min-height: 100%;
   width: 100%;
   background: var(--primed-color-bg, #ffffff);
-  font-family: var(--primed-font-body, 'Stacksanstext', sans-serif);
+  font-family: var(--primed-font-body, inherit);
   color: var(--primed-color-text, #131313);
 }
 
@@ -127,7 +127,7 @@
   border-radius: 100px;
   background: var(--primed-color-primary-light, #e5ecec);
   border: 1px solid var(--primed-color-fog, #E5ECEC);
-  font-family: var(--primed-font-mono, 'GeistMono', monospace);
+  font-family: var(--primed-font-mono, inherit);
   font-size: 10px;
   font-weight: 500;
   text-transform: uppercase;
@@ -138,7 +138,7 @@
 }
 
 .sq-question-number {
-  font-family: var(--primed-font-mono, 'GeistMono', monospace);
+  font-family: var(--primed-font-mono, inherit);
   font-size: 12px;
   font-weight: 500;
   text-transform: uppercase;
@@ -157,7 +157,7 @@
 }
 
 .sq-subtitle {
-  font-family: var(--primed-font-mono, 'GeistMono', monospace);
+  font-family: var(--primed-font-mono, inherit);
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 2px;
@@ -292,7 +292,7 @@
   border-radius: 12px;
   border: 2px solid var(--primed-color-fog, #E5ECEC);
   font-size: 16px;
-  font-family: var(--primed-font-body, 'Stacksanstext', sans-serif);
+  font-family: var(--primed-font-body, inherit);
   color: var(--primed-color-text, #131313);
   background: var(--primed-color-bg, #ffffff);
   outline: none;
@@ -313,7 +313,7 @@
   border-radius: 14px;
   border: 2px solid var(--primed-color-fog, #E5ECEC);
   font-size: 18px;
-  font-family: var(--primed-font-body, 'Stacksanstext', sans-serif);
+  font-family: var(--primed-font-body, inherit);
   color: var(--primed-color-text, #131313);
   background: var(--primed-color-bg, #ffffff);
   outline: none;
@@ -397,7 +397,7 @@ input[type="date"].sq-input::-webkit-date-and-time-value {
   border-radius: 14px;
   border: 2px solid var(--primed-color-fog, #E5ECEC);
   font-size: 17px;
-  font-family: var(--primed-font-body, 'Stacksanstext', sans-serif);
+  font-family: var(--primed-font-body, inherit);
   color: var(--primed-color-text, #131313);
   background: var(--primed-color-bg, #ffffff);
   outline: none;
@@ -584,7 +584,7 @@ input[type="date"].sq-input::-webkit-date-and-time-value {
 }
 
 .sq-enter-hint {
-  font-family: var(--primed-font-mono, 'GeistMono', monospace);
+  font-family: var(--primed-font-mono, inherit);
   font-size: 12px;
   color: var(--primed-color-text-muted, rgba(19, 19, 19, 0.55));
   display: flex;
@@ -604,7 +604,7 @@ input[type="date"].sq-input::-webkit-date-and-time-value {
   border-radius: 4px;
   border: 1px solid var(--primed-color-fog, #E5ECEC);
   background: var(--primed-color-bg-subtle, #f8f9fa);
-  font-family: var(--primed-font-mono, 'GeistMono', monospace);
+  font-family: var(--primed-font-mono, inherit);
   font-size: 11px;
   font-weight: 600;
   color: var(--primed-color-text, #131313);
@@ -617,7 +617,7 @@ input[type="date"].sq-input::-webkit-date-and-time-value {
   border: none;
   border-radius: var(--primed-btn-radius, 100px);
   padding: 12px 28px;
-  font-family: var(--primed-font-mono, 'GeistMono', monospace);
+  font-family: var(--primed-font-mono, inherit);
   font-size: 14px;
   font-weight: 600;
   letter-spacing: 1.5px;
@@ -654,7 +654,7 @@ input[type="date"].sq-input::-webkit-date-and-time-value {
   justify-content: center;
   min-height: 200px;
   color: var(--primed-color-text-muted, rgba(19, 19, 19, 0.55));
-  font-family: var(--primed-font-mono, 'GeistMono', monospace);
+  font-family: var(--primed-font-mono, inherit);
   font-size: 13px;
   letter-spacing: 1px;
   text-transform: uppercase;

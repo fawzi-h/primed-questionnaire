@@ -85,14 +85,14 @@ body .questionnaire-wrapper .questionnaire-container .questionnaire-card .card-b
 body .questionnaire-wrapper .questionnaire-container .questionnaire-card .card-body .questionnaire-title {
   margin-bottom: 18px;
   font-size: 34px;
-  font-family: var(--primed-font-heading, 'Bondia', serif);
+  font-family: var(--primed-font-heading, inherit);
   line-height: 1;
   font-weight: 700;
   color: var(--primed-color-text, #131313);
 }
 body .questionnaire-wrapper .questionnaire-container .questionnaire-card .card-body .questionnaire-description {
   color: var(--primed-color-text-muted, rgba(19, 19, 19, 0.55));
-  font-family: var(--primed-font-body, 'Stacksanstext', sans-serif);
+  font-family: var(--primed-font-body, inherit);
   font-size: 16px;
   font-weight: 400;
   margin-bottom: 22px;
@@ -112,7 +112,7 @@ body .questionnaire-wrapper .questionnaire-container .questionnaire-card .card-b
 }
 body .questionnaire-wrapper .questionnaire-container .questionnaire-card .card-body .questionnaire-notice {
   color: var(--primed-color-text-subtle);
-  font-family: var(--primed-font-body, 'Stacksanstext', sans-serif);
+  font-family: var(--primed-font-body, inherit);
   font-size: 11px;
   font-weight: 400;
   margin-bottom: 22px;
@@ -127,7 +127,7 @@ body .questionnaire-wrapper .questionnaire-container .questionnaire-card .card-b
   width: 100%;
   color: var(--primed-color-accent-text, #014548);
   margin-top: 10px;
-  font-family: var(--primed-font-mono, 'GeistMono', monospace);
+  font-family: var(--primed-font-mono, inherit);
   font-size: 1rem;
   font-weight: 500;
   letter-spacing: 3px;
@@ -146,7 +146,7 @@ body .questionnaire-wrapper .questionnaire-container .questionnaire-work {
 body .questionnaire-wrapper .questionnaire-container .questionnaire-work .questionnaire-work-title {
   margin-bottom: 25px;
   font-size: 34px;
-  font-family: var(--primed-font-heading, 'Bondia', serif);
+  font-family: var(--primed-font-heading, inherit);
   font-weight: 700;
   color: var(--primed-color-text, #131313);
 }
@@ -396,7 +396,7 @@ body .survey-questions .personal-form-wrapper .submitBtn {
   margin-top: 10px;
   border-radius: var(--primed-btn-radius, 100px);
   border: none;
-  font-family: var(--primed-font-mono, 'GeistMono', monospace);
+  font-family: var(--primed-font-mono, inherit);
   font-weight: 600;
   transition: border-color .2s, background-color .2s;
 }
@@ -474,7 +474,7 @@ body .survey-questions .survey-card .card-bottom .cardBtn.nextBtn {
   border-radius: var(--primed-btn-radius, 100px);
   color: var(--primed-color-accent-text, #014548);
   padding: var(--primed-btn-padding, 0.75rem 1.5rem);
-  font-family: var(--primed-font-mono, 'GeistMono', monospace);
+  font-family: var(--primed-font-mono, inherit);
   font-size: 1rem;
   font-weight: 700;
   letter-spacing: 3px;
@@ -490,7 +490,7 @@ body .survey-questions .survey-card .card-bottom .cardBtn.submitQuizBtn {
   border-radius: var(--primed-btn-radius, 100px);
   color: var(--primed-color-accent-text, #014548);
   padding: var(--primed-btn-padding, 0.75rem 1.5rem);
-  font-family: var(--primed-font-mono, 'GeistMono', monospace);
+  font-family: var(--primed-font-mono, inherit);
   font-size: 1rem;
   font-weight: 700;
   letter-spacing: 3px;
