@@ -160,7 +160,13 @@ function mount() {
   const root = createRoot(mountEl);
   root.render(
     <SurveyConfigProvider config={buildClassConfig()}>
-      <MemoryRouter initialEntries={[buildInitialEntry()]}>
+      <MemoryRouter
+        initialEntries={[buildInitialEntry()]}
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true,
+        }}
+      >
         <App />
       </MemoryRouter>
     </SurveyConfigProvider>

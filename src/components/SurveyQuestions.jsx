@@ -1,8 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { sanitizeInput } from "../Auth/Sanitizer";
-import "react-phone-input-2/lib/style.css";
-import "flag-icon-css/css/flag-icons.min.css";
 import api from "../Api/AuthApi";
 import { fetchQuestionsOnce } from "../questionsCache";
 import { useSurveyConfig } from "../SurveyConfig";
@@ -85,13 +83,12 @@ const SurveyQuestions = () => {
   const [questions, setQuestions] = useState([]);
   const [currentQuestion, setCurrentQuestion] = useState(0);
 
-  const [showAlert] = useState(false);
+  const [showAlert, setShowAlert] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [formSubmitted] = useState(true);
   const [surveySubmitted, setSurveySubmitted] = useState(false);
   const [surveySaved, setSurveySaved] = useState(false);
   const [medicareCheckbox, setMedicareCheckbox] = useState(false);
-  const [progress, setProgress] = useState(0);
   const [showConsentStep, setShowConsentStep] = useState(false);
   const [showUnderAgeMessage, setShowUnderAgeMessage] = useState(false);
   const [consentChecked, setConsentChecked] = useState([]);
@@ -126,8 +123,6 @@ const SurveyQuestions = () => {
   const [token, setToken] = useState(null);
   const [animKey, setAnimKey] = useState(0);
   const autoAdvanceRef = useRef(false);
-  const dropdownRef = useRef(null);
-
   const formatDateInputValue = (date) => {
     const year = date.getFullYear();
     const month = `${date.getMonth() + 1}`.padStart(2, "0");
@@ -264,7 +259,6 @@ const SurveyQuestions = () => {
       token,
       currentQuestion,
       questionsLength: questions.length,
-      progress,
       showConsentStep,
       surveySubmitted,
       surveySaved,
@@ -276,7 +270,6 @@ const SurveyQuestions = () => {
     token,
     currentQuestion,
     questions.length,
-    progress,
     showConsentStep,
     surveySubmitted,
     surveySaved,
@@ -519,15 +512,11 @@ const SurveyQuestions = () => {
             : 0;
 
         setCurrentQuestion(nextQuestion);
-        setProgress(
-          questions.length ? ((nextQuestion + 1) / questions.length) * 100 : 0,
-        );
       } catch (error) {
         debugError("token/restore effect:JSON parse error", error);
       }
     } else {
       setCurrentQuestion(0);
-      setProgress(questions.length ? (1 / questions.length) * 100 : 0);
     }
 
     debug("token/restore effect:end");
@@ -652,8 +641,7 @@ const SurveyQuestions = () => {
   const goTo = useCallback((nextIndex) => {
     setCurrentQuestion(nextIndex);
     setAnimKey((k) => k + 1);
-    setProgress(((nextIndex + 1) / questions.length) * 100);
-  }, [questions.length]);
+  }, []);
 
   const visibleIndices = getOrderedVisible();
 
@@ -749,10 +737,13 @@ const SurveyQuestions = () => {
   }, [showConsentStep, questions, currentQuestion, isQuestionAnswered, handleNext]);
 
   const validateNumberInput = (value, fieldName) => {
+    const errorKey =
+      fieldName === "medicare" ? "medicare_number" : fieldName;
+
     if (isNaN(value)) {
       setErrors((prev) => ({
         ...prev,
-        [fieldName]: "Please enter only a number",
+        [errorKey]: "Please enter only a number",
       }));
       return false;
     }
@@ -760,12 +751,12 @@ const SurveyQuestions = () => {
     if (fieldName === "medicare" && value.length > 10) {
       setErrors((prev) => ({
         ...prev,
-        [fieldName]: "Medicare number should not exceed 10 digits",
+        [errorKey]: "Medicare number should not exceed 10 digits",
       }));
       return false;
     }
 
-    setErrors((prev) => ({ ...prev, [fieldName]: null }));
+    setErrors((prev) => ({ ...prev, [errorKey]: null }));
     return true;
   };
 
@@ -878,6 +869,12 @@ const SurveyQuestions = () => {
                   if (question.key === "age_over_18" && choice === "No") {
                     sendStoppedQuestionnaireData(newAnswers);
                     setTimeout(() => setShowUnderAgeMessage(true), 400);
+                    return;
+                  }
+
+                  if (question.key === "pregnancy_status" && choice === "Yes") {
+                    sendStoppedQuestionnaireData(newAnswers);
+                    setTimeout(() => setShowAlert(true), 400);
                     return;
                   }
 
@@ -1616,7 +1613,7 @@ const SurveyQuestions = () => {
         </div>
       </div>
 
-      <div ref={dropdownRef} style={{ display: "none" }}>
+      <div style={{ display: "none" }}>
         <button
           onClick={showPopup}
           className="signout_button"
