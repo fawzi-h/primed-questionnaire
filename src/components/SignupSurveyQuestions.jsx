@@ -254,6 +254,31 @@ const SurveyQuestions = () => {
   const hidePopup = () => setIsVisible(false);
   const dropdownRef = useRef(null);
 
+  const formatDateInputValue = (date) => {
+    const year = date.getFullYear();
+    const month = `${date.getMonth() + 1}`.padStart(2, "0");
+    const day = `${date.getDate()}`.padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const getAdultDobMaxDate = () => {
+    const cutoff = new Date();
+    cutoff.setFullYear(cutoff.getFullYear() - 18);
+    return formatDateInputValue(cutoff);
+  };
+
+  const isAdultDob = (value) => {
+    if (!value) return false;
+
+    const [year, month, day] = value.split("-").map(Number);
+    if (!year || !month || !day) return false;
+
+    const selectedDate = new Date(year, month - 1, day);
+    if (Number.isNaN(selectedDate.getTime())) return false;
+
+    return value <= getAdultDobMaxDate();
+  };
+
   // Map treatment names to imported images
   // const treatmentImages = {
   //   "Anti Ageing And Vitality": require("../assets/images/anti_ageing_vitality2.jpg"),
@@ -552,6 +577,10 @@ const SurveyQuestions = () => {
       if (!Array.isArray(answer) || answer.length === 0) return false;
       if (answer.length === 1 && answer[0] === "Other") return !!otherTexts[question.key];
       return true;
+    }
+
+    if (question.type === "date_input") {
+      return isAdultDob(answer);
     }
 
     return answer !== undefined && answer !== "";
@@ -1144,6 +1173,8 @@ const SurveyQuestions = () => {
               minDate={new Date()}
               className={`form-control${inputClass ? ` ${inputClass}` : ""} border rounded px-2 py-2 w-full`}
               disabled={medicareCheckbox}
+              portalId="sq-datepicker-portal"
+              popperPlacement="bottom-start"
             />
             {errors["medicare_expiry"] && (
               <small className="text-danger">{errors["medicare_expiry"]}</small>
@@ -1391,10 +1422,7 @@ const SurveyQuestions = () => {
         );
 
       case "date_input":
-        const today = new Date();
-        const maxDate = new Date(today.setFullYear(today.getFullYear() - 18))
-          .toISOString()
-          .split("T")[0];
+        const maxDate = getAdultDobMaxDate();
         return (
           <div className="mb-4 form-outline">
             <h4 className={`card-question mt-5${labelClass ? ` ${labelClass}` : ""}`}>
@@ -1404,9 +1432,22 @@ const SurveyQuestions = () => {
               type="date"
               max={maxDate}
               value={answers[question.key] || ""}
-              onChange={(e) => handleAnswer(question.key, e.target.value)} // Use question.key here
+              onChange={(e) => {
+                const value = e.target.value;
+                handleAnswer(question.key, value);
+                setErrors((prev) => ({
+                  ...prev,
+                  [question.key]:
+                    value && !isAdultDob(value)
+                      ? "You must be at least 18 years old."
+                      : null,
+                }));
+              }}
               className={`form-control${inputClass ? ` ${inputClass}` : ""} border rounded px-2 py-2`}
             />
+            {errors[question.key] && (
+              <p className="text-danger mt-2 mb-0">{errors[question.key]}</p>
+            )}
           </div>
         );
 
