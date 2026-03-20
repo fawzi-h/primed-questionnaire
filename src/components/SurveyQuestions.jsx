@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { sanitizeInput } from "../Auth/Sanitizer";
 import "react-phone-input-2/lib/style.css";
@@ -16,6 +16,17 @@ import { format } from "date-fns";
 import "./SurveyQuestions.css";
 
 const LOCAL_STORAGE_KEY = "primed_survey";
+const TREATMENT_QUESTION_KEYS = [
+  "anti-ageing-vitality",
+  "cognitive-health-performance",
+  "gut-health-immunity",
+  "injury-repair-recovery",
+  "muscle-strength-building",
+  "sexual-health",
+  "skin-care",
+  "weight-loss-weight-management",
+  "womens-health",
+];
 
 const DEBUG = false;
 const DEBUG_PREFIX = "[SurveyQuestions]";
@@ -74,7 +85,7 @@ const SurveyQuestions = () => {
   const [questions, setQuestions] = useState([]);
   const [currentQuestion, setCurrentQuestion] = useState(0);
 
-  const [showAlert, setShowAlert] = useState(false);
+  const [showAlert] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [formSubmitted] = useState(true);
   const [surveySubmitted, setSurveySubmitted] = useState(false);
@@ -124,13 +135,13 @@ const SurveyQuestions = () => {
     return `${year}-${month}-${day}`;
   };
 
-  const getAdultDobMaxDate = () => {
+  const getAdultDobMaxDate = useCallback(() => {
     const cutoff = new Date();
     cutoff.setFullYear(cutoff.getFullYear() - 18);
     return formatDateInputValue(cutoff);
-  };
+  }, []);
 
-  const isAdultDob = (value) => {
+  const isAdultDob = useCallback((value) => {
     if (!value) return false;
 
     const [year, month, day] = value.split("-").map(Number);
@@ -140,7 +151,7 @@ const SurveyQuestions = () => {
     if (Number.isNaN(selectedDate.getTime())) return false;
 
     return value <= getAdultDobMaxDate();
-  };
+  }, [getAdultDobMaxDate]);
 
   const scrollViewportToTop = () => {
     window.requestAnimationFrame(() => {
@@ -152,7 +163,7 @@ const SurveyQuestions = () => {
 
   const { medicareCardImageUrl, dashboardUrl } = useSurveyConfig();
 
-  const clearSurveySession = (currentToken = token) => {
+  const clearSurveySession = useCallback((currentToken = token) => {
     sessionStorage.removeItem("treatment_plan");
     sessionStorage.removeItem("treatment_id");
     sessionStorage.removeItem("treatmentName");
@@ -161,12 +172,12 @@ const SurveyQuestions = () => {
     if (currentToken) {
       sessionStorage.removeItem(`${LOCAL_STORAGE_KEY}_${currentToken}`);
     }
-  };
+  }, [token]);
 
   const showPopup = () => setIsVisible(true);
   const hidePopup = () => setIsVisible(false);
 
-  const getResolvedTreatment = () => {
+  const getResolvedTreatment = useCallback(() => {
     const params = new URLSearchParams(location.search);
 
     const queryTreatmentName = params.get("treatment_plan") || "";
@@ -206,7 +217,7 @@ const SurveyQuestions = () => {
     });
 
     return result;
-  };
+  }, [location.search, treatmentName, id]);
 
   const generateToken = () => {
     const generated = crypto.randomUUID();
@@ -334,7 +345,7 @@ const SurveyQuestions = () => {
       treatmentName: sessionStorage.getItem("treatmentName"),
       treatmentId: sessionStorage.getItem("treatmentId"),
     });
-  }, [location.search, treatmentName, id]);
+  }, [getResolvedTreatment]);
 
   useEffect(() => {
     let isMounted = true;
@@ -393,19 +404,7 @@ const SurveyQuestions = () => {
     });
   }, [token, answers, currentQuestion]);
 
-  const TREATMENT_QUESTION_KEYS = [
-    "anti-ageing-vitality",
-    "cognitive-health-performance",
-    "gut-health-immunity",
-    "injury-repair-recovery",
-    "muscle-strength-building",
-    "sexual-health",
-    "skin-care",
-    "weight-loss-weight-management",
-    "womens-health",
-  ];
-
-  const isQuestionVisible = (index, ans = answers) => {
+  const isQuestionVisible = useCallback((index, ans = answers) => {
     if (!questions[index]) return true;
 
     const key = questions[index].key;
@@ -439,7 +438,7 @@ const SurveyQuestions = () => {
     }
 
     return true;
-  };
+  }, [answers, questions, resolvedTreatment.treatmentName, treatmentName]);
 
   // Returns the visible question indices reordered so the treatment-specific
   // question always appears immediately before "referral_source", which is
@@ -476,7 +475,7 @@ const SurveyQuestions = () => {
         visibleKeys: visibleIndices.map((i) => questions[i]?.key),
       });
     }
-  }, [questions, answers, resolvedTreatment, currentQuestion, treatmentName]);
+  }, [questions, currentQuestion, isQuestionVisible]);
 
   useEffect(() => {
     debug("token/restore effect:start", {
@@ -579,7 +578,7 @@ const SurveyQuestions = () => {
   useEffect(() => {
     if (!showAlert && !showUnderAgeMessage) return;
     clearSurveySession(token);
-  }, [showAlert, showUnderAgeMessage, token]);
+  }, [showAlert, showUnderAgeMessage, token, clearSurveySession]);
 
   useEffect(() => {
     autoAdvanceRef.current = true;
@@ -590,7 +589,7 @@ const SurveyQuestions = () => {
     scrollViewportToTop();
   }, [currentQuestion, showConsentStep]);
 
-  const isQuestionAnswered = (index) => {
+  const isQuestionAnswered = useCallback((index) => {
     if (!questions[index]) return false;
 
     const question = questions[index];
@@ -648,9 +647,15 @@ const SurveyQuestions = () => {
     }
 
     return answer !== undefined && answer !== "";
-  };
+  }, [answers, isAdultDob, medicareCheckbox, otherTexts, questions]);
 
-  const handleNext = () => {
+  const goTo = useCallback((nextIndex) => {
+    setCurrentQuestion(nextIndex);
+    setAnimKey((k) => k + 1);
+    setProgress(((nextIndex + 1) / questions.length) * 100);
+  }, [questions.length]);
+
+  const handleNext = useCallback(() => {
     debug("handleNext:start", {
       currentQuestion,
       currentKey: questions[currentQuestion]?.key,
@@ -697,7 +702,17 @@ const SurveyQuestions = () => {
     } else {
       setShowConsentStep(true);
     }
-  };
+  }, [
+    answers.individual_reference_number,
+    answers.medicare_number,
+    currentQuestion,
+    currentVisibleIndex,
+    goTo,
+    isQuestionAnswered,
+    medicareCheckbox,
+    questions,
+    visibleIndices,
+  ]);
 
   useEffect(() => {
     const onKey = (e) => {
@@ -711,7 +726,7 @@ const SurveyQuestions = () => {
 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [showConsentStep, questions, currentQuestion, answers, medicareCheckbox]);
+  }, [showConsentStep, questions, currentQuestion, isQuestionAnswered, handleNext]);
 
   const validateNumberInput = (value, fieldName) => {
     if (isNaN(value)) {
@@ -813,12 +828,6 @@ const SurveyQuestions = () => {
         error.response?.data?.detail || error.response?.data || error.message;
       debugError("sendStoppedQuestionnaireData:error", detail);
     }
-  };
-
-  const goTo = (nextIndex) => {
-    setCurrentQuestion(nextIndex);
-    setAnimKey((k) => k + 1);
-    setProgress(((nextIndex + 1) / questions.length) * 100);
   };
 
   const handlePrevious = () => {

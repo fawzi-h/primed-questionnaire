@@ -193,8 +193,7 @@ const SurveyQuestions = () => {
     return savedQuestion ? parseInt(savedQuestion, 10) : 0;
   });
   const [showAlert, setShowAlert] = useState(false);
-     // eslint-disable-next-line
-  const [showQuestionnaire, setShowQuestionnaire] = useState(false);
+  const [showQuestionnaire] = useState(false);
   const [formSubmitted, setFormSubmitted] = useState(() => {
     // Retrieve the saved state from session storage
     const savedState = sessionStorage.getItem("sessionData");
@@ -312,7 +311,7 @@ const SurveyQuestions = () => {
       });
 
     return () => { isMounted = false; };
-  }, [formSubmitted]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [formSubmitted]);
   // Only initialize Places Autocomplete when Google Maps is loaded
   const {
     ready,
@@ -539,7 +538,7 @@ const SurveyQuestions = () => {
       window.location.href = target;
     }, 5000);
     return () => clearTimeout(timer);
-  }, [surveySubmitted, dashboardUrl]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [surveySubmitted, dashboardUrl]);
 
   // Update the formData state with the user's personal information input
   const handlePersonalInfoChange = (e) => {
@@ -711,7 +710,7 @@ const SurveyQuestions = () => {
       );
 
       setIsDropdownVisible(true);
-    } catch (error) {
+    } catch (_error) {
       navigate("/page/error");
     }
   };
@@ -1421,7 +1420,7 @@ const SurveyQuestions = () => {
           </div>
         );
 
-      case "date_input":
+      case "date_input": {
         const maxDate = getAdultDobMaxDate();
         return (
           <div className="mb-4 form-outline">
@@ -1450,6 +1449,7 @@ const SurveyQuestions = () => {
             )}
           </div>
         );
+      }
 
       case "input":
       case "weight_input":
@@ -1545,7 +1545,7 @@ const SurveyQuestions = () => {
       sessionStorage.clear();
       sessionStorage.removeItem(LOCAL_STORAGE_KEY);
       sessionStorage.removeItem(`${LOCAL_STORAGE_KEY}_${token}`);
-    } catch (error) {
+    } catch (_error) {
       navigate("/page/error");
     } finally {
       setSurveyLoading(false);
@@ -1564,7 +1564,7 @@ const SurveyQuestions = () => {
       sessionStorage.clear();
       sessionStorage.removeItem(LOCAL_STORAGE_KEY);
       sessionStorage.removeItem(`${LOCAL_STORAGE_KEY}_${token}`);
-    } catch (error) {
+    } catch (_error) {
       navigate("/page/error");
     } finally {
       setSurveyLoading(false);
@@ -1579,7 +1579,7 @@ const SurveyQuestions = () => {
     const data = overrideAnswers || answers;
     try {
       await api.post("/api/register/complete", buildPayload(data, false));
-    } catch (error) {
+    } catch (_error) {
       navigate("/page/error");
     }
   };
