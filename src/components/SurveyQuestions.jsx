@@ -1190,36 +1190,45 @@ const SurveyQuestions = () => {
         )}
 
         {question.checkbox && (
-          <div className="sq-medicare-checkbox-row">
-            <input
-              type="checkbox"
-              id="checkbox-medicare"
-              checked={medicareCheckbox}
-              onChange={(e) => {
-                const checked = e.target.checked;
-                setMedicareCheckbox(checked);
+          <div className="sq-medicare-checkbox-group">
+            <div className="sq-medicare-checkbox-row">
+              <input
+                type="checkbox"
+                id="checkbox-medicare"
+                checked={medicareCheckbox}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  setMedicareCheckbox(checked);
 
-                if (checked) {
-                  setAnswers((prev) => ({
-                    ...prev,
-                    medicare_number: "",
-                    medicare_expiry: "",
-                    individual_reference_number: "",
-                  }));
+                  if (checked) {
+                    setAnswers((prev) => ({
+                      ...prev,
+                      medicare_number: "",
+                      medicare_expiry: "",
+                      individual_reference_number: "",
+                    }));
 
-                  setErrors((prev) => {
-                    const next = { ...prev };
-                    delete next.medicare_number;
-                    delete next.medicare_expiry;
-                    delete next.individual_reference_number;
-                    return next;
-                  });
-                }
-              }}
-            />
-            <label htmlFor="checkbox-medicare">
-              I'll have these ready for the consultation.
-            </label>
+                    setErrors((prev) => {
+                      const next = { ...prev };
+                      delete next.medicare_number;
+                      delete next.medicare_expiry;
+                      delete next.individual_reference_number;
+                      return next;
+                    });
+                  }
+                }}
+              />
+              <label htmlFor="checkbox-medicare">
+                I'll have these ready for the consultation.
+              </label>
+            </div>
+            {medicareCheckbox && (
+              <p className="sq-medicare-alert">
+                Please note that Medicare details or IHI are required to enable
+                our doctors to prescribe a treatment. Please make sure you have
+                them handy during your first consultation.
+              </p>
+            )}
           </div>
         )}
 
@@ -1343,7 +1352,7 @@ const SurveyQuestions = () => {
                   Redirecting to your dashboard in a few seconds...
                 </p>
                 <a href={dashboardUrl || `${getBaseUrl()}/patient`}>
-                  <button className="questionairre-startBtn">
+                  <button className="questionnaire-startBtn">
                     Go To Dashboard
                   </button>
                 </a>
@@ -1372,7 +1381,7 @@ const SurveyQuestions = () => {
                   in touch to recommend a tailored treatment plan.
                 </p>
                 <a href={`${getBaseUrl()}/patient`}>
-                  <button className="questionairre-startBtn">
+                  <button className="questionnaire-startBtn">
                     Login To Your Dashboard
                   </button>
                 </a>
@@ -1403,7 +1412,7 @@ const SurveyQuestions = () => {
                   can offer more suitable options.
                 </p>
                 <Link to="/">
-                  <button className="questionairre-startBtn">
+                  <button className="questionnaire-startBtn">
                     Return To Home Page
                   </button>
                 </Link>
@@ -1449,7 +1458,7 @@ const SurveyQuestions = () => {
                   support for your needs. Wishing you the very best of health!
                 </p>
                 <a href="https://www.primedclinic.com.au">
-                  <button className="questionairre-startBtn">
+                  <button className="questionnaire-startBtn">
                     Return To Home Page
                   </button>
                 </a>

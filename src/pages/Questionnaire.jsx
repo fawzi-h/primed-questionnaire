@@ -62,7 +62,7 @@ const Questionnaire = ({ onStartQuiz }) => {
 
               <button
                 onClick={handleStart}
-                className={`questionairre-startBtn${
+                className={`questionnaire-startBtn${
                   submitBtnClass ? ` ${submitBtnClass}` : ""
                 }`}
               >

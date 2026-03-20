@@ -121,7 +121,7 @@ body .questionnaire-wrapper .questionnaire-container .questionnaire-card .card-b
   color: var(--primed-color-focus, #43a6aa) !important;
   text-decoration: underline;
 }
-body .questionnaire-wrapper .questionnaire-container .questionnaire-card .card-body .questionairre-startBtn {
+body .questionnaire-wrapper .questionnaire-container .questionnaire-card .card-body .questionnaire-startBtn {
   background-color: var(--primed-color-accent, #faf08c);
   padding: var(--primed-btn-padding, 0.75rem 1.5rem);
   width: 100%;
@@ -136,7 +136,7 @@ body .questionnaire-wrapper .questionnaire-container .questionnaire-card .card-b
   border: none;
   transition: border-color .2s, background-color .2s;
 }
-body .questionnaire-wrapper .questionnaire-container .questionnaire-card .card-body .questionairre-startBtn:hover {
+body .questionnaire-wrapper .questionnaire-container .questionnaire-card .card-body .questionnaire-startBtn:hover {
   background: var(--primed-color-primary, #014548);
   color: var(--primed-color-accent, #faf08c);
 }

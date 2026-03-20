@@ -455,6 +455,12 @@ input[type="date"].sq-input::-webkit-date-and-time-value {
   gap: 10px;
 }
 
+.sq-medicare-checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .sq-medicare-checkbox-row input[type="checkbox"] {
   width: 20px;
   height: 20px;
@@ -466,6 +472,17 @@ input[type="date"].sq-input::-webkit-date-and-time-value {
   font-size: 14px;
   color: var(--primed-color-text, #131313);
   cursor: pointer;
+}
+
+.sq-medicare-alert {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #fff4e5;
+  border: 1px solid #f4c27a;
+  color: #8a4b08;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 .sq-ihi-section {

@@ -2,7 +2,7 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Redesign the questionnaire flow to remove 4 questions (age_over_18, has_diagnosed_with_cancer, peptides pair), change medical_conditions from multi-select to MCQ+textarea, change medications_details from multi-select to textarea, add IHI field to Medicare group, add method-of-delivery single-select, add treatment-goal-specific Q19 multi-select, add womens-health treatment, fix sexual-ealt-libido typo.
+**Goal:** Redesign the questionnaire flow to remove 4 questions (age_over_18, has_diagnosed_with_cancer, peptides pair), change medical_conditions from multi-select to MCQ+textarea, change medications_details from multi-select to textarea, add IHI field to Medicare group, add method-of-delivery single-select, add treatment-goal-specific Q19 multi-select, add womens-health treatment, fix sexual-health-libido typo.
 
 **Architecture:** Key-based visibility logic (already used by SurveyQuestions.jsx) replaces index-based logic in SignupSurveyQuestions.jsx. A new `src/data/treatmentQuestions.js` module holds the treatment-goal Q19 choices mapping. Both questionnaire components get identical question flow changes. Mock questions in vite.config.js updated to match.
 
@@ -217,7 +217,7 @@ git commit -m "feat: update mock questions for new flow"
 **Step 1: Fix the typo and add womens-health**
 
 In the `treatments` array:
-- Change `"sexual-ealt-libido"` to `"sexual-health-libido"` (slug, id stays 5)
+- Change `"sexual-health-libido"` to `"sexual-health-libido"` (slug, id stays 5)
 - Add new entry after the last treatment:
   ```js
   { slug: "womens-health", id: 11, label: "Women's Health", img: CDN + "6993e4f3c649c536843ad00f_Thyroid%20Disease%20Hypothyroidism%20Jan%208%202026%20(1).webp" },
@@ -227,7 +227,7 @@ In the `treatments` array:
 **Step 2: Commit**
 ```bash
 git add src/pages/TreatmentSelection.jsx
-git commit -m "feat: add womens-health treatment, fix sexual-ealt-libido typo"
+git commit -m "feat: add womens-health treatment, fix sexual-health-libido typo"
 ```
 
 ---

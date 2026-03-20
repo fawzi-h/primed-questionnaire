@@ -153,7 +153,7 @@ For each occurrence, replace the hardcoded value with the appropriate `var(--pri
 
 | Location (selector) | Property | Old Value | New Value |
 |---|---|---|---|
-| `.questionairre-startBtn:hover` | `color` | `#4d7c7e` | `var(--primed-color-accent-text)` |
+| `.questionnaire-startBtn:hover` | `color` | `#4d7c7e` | `var(--primed-color-accent-text)` |
 | `.questionnaire-notice` | `color` | `#6b7c82` | `var(--primed-color-text-subtle)` |
 | `.survey-header` | `box-shadow` | `rgba(3, 62, 71, 0.1)` | `rgba(0, 0, 0, 0.06)` |
 | `.popup-container` | `background-color` | `#fff` | `var(--primed-color-bg)` |
@@ -218,7 +218,7 @@ font-family: var(--primed-font-heading, 'Barlow Condensed', sans-serif);
 font-family: var(--primed-font-heading, 'Bondia', serif);
 ```
 
-For button text (`.questionairre-startBtn`, `.nextBtn`, `.submitQuizBtn`), add the mono font variable:
+For button text (`.questionnaire-startBtn`, `.nextBtn`, `.submitQuizBtn`), add the mono font variable:
 ```css
 font-family: var(--primed-font-mono, 'GeistMono', monospace);
 ```

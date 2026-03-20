@@ -18,7 +18,7 @@ import { X } from "lucide-react";
 import getBaseUrl from "../Api/BaseUrl";
 import { validateRedirectUrl } from "../utils/validation";
 import { TREATMENT_QUESTION_MAP } from "../data/treatmentQuestions";
-// import Questionairre from "../pages/Questionnaire"; // exact path
+// import questionnaire from "../pages/Questionnaire"; // exact path
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { format } from "date-fns";
@@ -1256,7 +1256,7 @@ const SurveyQuestions = () => {
 
               />
               <label htmlFor={`checkbox-${index}`} className="px-1">
-                {/* TODO: Get this from the databasey */}
+                {/* TODO: Get this from the database */}
                 I'll have these ready for the consultation.
               </label>
             </div>
@@ -1671,7 +1671,7 @@ const SurveyQuestions = () => {
                   Redirecting to your dashboard in a few seconds...
                 </p>
                 <a href={dashboardUrl || `${getBaseUrl()}/patient`}>
-                  <button className="questionairre-startBtn">
+                  <button className="questionnaire-startBtn">
                     Go To Dashboard
                   </button>
                 </a>
@@ -1702,7 +1702,7 @@ const SurveyQuestions = () => {
                   in touch to recommend a tailored treatment plan.
                 </p>
                 <a href={`${getBaseUrl()}/patient`}>
-                  <button className="questionairre-startBtn">
+                  <button className="questionnaire-startBtn">
                     Login To Your Dashboard
                   </button>
                 </a>
@@ -1738,7 +1738,7 @@ const SurveyQuestions = () => {
                   offer more suitable options.
                 </p>
                 <Link to="/">
-                  <button className="questionairre-startBtn">
+                  <button className="questionnaire-startBtn">
                     Return To Home Page
                   </button>
                 </Link>
@@ -1772,7 +1772,7 @@ const SurveyQuestions = () => {
                   We'd encourage you to speak with your GP or a trusted adult, who can help connect you with the most appropriate healthcare support for your needs. Wishing you the very best of health! 💙
                 </p>
                 <a href="https://www.primedclinic.com.au">
-                  <button className="questionairre-startBtn">Return To Home Page</button>
+                  <button className="questionnaire-startBtn">Return To Home Page</button>
                 </a>
               </div>
             </div>
@@ -1793,7 +1793,7 @@ const SurveyQuestions = () => {
             questions so your practitioner can prepare for your consultation.
           </p>
           <button
-            className="questionairre-startBtn"
+            className="questionnaire-startBtn"
             onClick={() => setShowWelcomePopup(false)}
           >
             Start Assessment
@@ -1840,7 +1840,7 @@ const SurveyQuestions = () => {
                 className={`cardBtn prevBtn${navBtnClass ? ` ${navBtnClass}` : ""}`}
               >
                 <img
-                  src={require("..//assets/images/questionairreBackButton.png")}
+                  src={require("..//assets/images/questionnaireBackButton.png")}
                   alt="Back Button"
                 />
               </button>
@@ -1953,7 +1953,7 @@ const SurveyQuestions = () => {
                   className={`cardBtn prevBtn disabled:opacity-50${navBtnClass ? ` ${navBtnClass}` : ""}`}
                 >
                   <img
-                    src={require("..//assets/images/questionairreBackButton.png")}
+                    src={require("..//assets/images/questionnaireBackButton.png")}
                     alt="Back Button"
                   />
                 </button>
