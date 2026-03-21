@@ -38,9 +38,9 @@ const Questionnaire = ({ onStartQuiz }) => {
         <div className="questionnaire-container">
           <div className="questionnaire-card">
             <div className="card-body">
-              <h3 className="questionnaire-title">
+              <h2 className="questionnaire-title questionnaire-screen-title">
                 Welcome To Your Assessment
-              </h3>
+              </h2>
 
               <p className="questionnaire-description">
                 This assessment takes approximately 3-5 minutes to complete.

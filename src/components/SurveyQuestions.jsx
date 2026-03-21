@@ -1401,67 +1401,82 @@ const SurveyQuestions = () => {
     </div>
   );
 
-  if (surveySubmitted) {
-    return (
-      <div className="questionnaire-wrapper">
-        <div className="container">
-          <div className="questionnaire-container">
-            <div className="questionnaire-card">
-              <div className="card-body">
-                <h3 className="questionnaire-title">
-                  That's it! You're all done.
-                </h3>
-                <p className="questionnaire-description">
-                  Thank you for completing the questionnaire. We look forward to
-                  discussing your health journey in your upcoming consultation
+  const renderQuestionnaireStatusScreen = ({
+    title,
+    descriptions = [],
+    notices = [],
+    actionHref,
+    actionLabel,
+    actionTo,
+  }) => (
+    <div className="questionnaire-wrapper">
+      <div className="container">
+        <div className="questionnaire-container">
+          <div className="questionnaire-card">
+            <div className="card-body">
+              <h2 className="questionnaire-title questionnaire-screen-title">
+                {title}
+              </h2>
+
+              {descriptions.map((description, index) => (
+                <p key={`description-${index}`} className="questionnaire-description">
+                  {description}
                 </p>
-                <p className="questionnaire-notice">
-                  After the appointment, your practitioner will be in touch to
-                  recommend a tailored treatment plan.
+              ))}
+
+              {notices.map((notice, index) => (
+                <p key={`notice-${index}`} className="questionnaire-notice">
+                  {notice}
                 </p>
-                <p className="questionnaire-notice">
-                  Redirecting to your dashboard in a few seconds...
-                </p>
-                <a href={dashboardUrl || `${getBaseUrl()}/patient`}>
+              ))}
+
+              {actionTo ? (
+                <Link to={actionTo}>
                   <button className="questionnaire-startBtn">
-                    Go To Dashboard
+                    {actionLabel}
+                  </button>
+                </Link>
+              ) : (
+                <a href={actionHref}>
+                  <button className="questionnaire-startBtn">
+                    {actionLabel}
                   </button>
                 </a>
-              </div>
+              )}
             </div>
           </div>
         </div>
       </div>
-    );
+    </div>
+  );
+
+  if (surveySubmitted) {
+    return renderQuestionnaireStatusScreen({
+      title: "That's it! You're all done.",
+      descriptions: [
+        "Thank you for completing the questionnaire. We look forward to discussing your health journey in your upcoming consultation",
+      ],
+      notices: [
+        "After the appointment, your practitioner will be in touch to recommend a tailored treatment plan.",
+        "Redirecting to your dashboard in a few seconds...",
+      ],
+      actionHref: dashboardUrl || `${getBaseUrl()}/patient`,
+      actionLabel: "Go To Dashboard",
+    });
   }
 
   if (surveySaved) {
-    return (
-      <div className="questionnaire-wrapper">
-        <div className="container">
-          <div className="questionnaire-container">
-            <div className="questionnaire-card">
-              <div className="card-body">
-                <h3 className="questionnaire-title">Your Progress Is Saved!</h3>
-                <p className="questionnaire-description">
-                  Login anytime to your account to continue your questionnaire
-                  for the telehealth assessment from where you stopped!
-                </p>
-                <p className="questionnaire-notice">
-                  After finishing your questionnaire, your practitioner will be
-                  in touch to recommend a tailored treatment plan.
-                </p>
-                <a href={`${getBaseUrl()}/patient`}>
-                  <button className="questionnaire-startBtn">
-                    Login To Your Dashboard
-                  </button>
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return renderQuestionnaireStatusScreen({
+      title: "Your Progress Is Saved!",
+      descriptions: [
+        "Login anytime to your account to continue your questionnaire for the telehealth assessment from where you stopped!",
+      ],
+      notices: [
+        "After finishing your questionnaire, your practitioner will be in touch to recommend a tailored treatment plan.",
+      ],
+      actionHref: `${getBaseUrl()}/patient`,
+      actionLabel: "Login To Your Dashboard",
+    });
   }
 
   if (showAlert) {
@@ -1471,10 +1486,10 @@ const SurveyQuestions = () => {
           <div className="questionnaire-container">
             <div className="questionnaire-card">
               <div className="card-body">
-                <h3 className="questionnaire-title">
+                <h2 className="questionnaire-title questionnaire-screen-title">
                   We're sorry, but Primed Clinic is not the right fit for you at
                   this time.
-                </h3>
+                </h2>
                 <p className="questionnaire-description survey-questionnaire-description">
                   Primed Clinic is not suitable for pregnant women, those
                   breastfeeding or planning to become pregnant. Some of the
@@ -1511,7 +1526,9 @@ const SurveyQuestions = () => {
                 >
                   👩‍⚕️
                 </div>
-                <h3 className="questionnaire-title">We're Unable to Proceed</h3>
+                <h2 className="questionnaire-title questionnaire-screen-title">
+                  We're Unable to Proceed
+                </h2>
                 <p className="questionnaire-description survey-questionnaire-description">
                   Thank you for taking a moment to complete our initial
                   screening - we truly appreciate it.
