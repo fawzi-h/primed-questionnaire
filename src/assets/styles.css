@@ -51,8 +51,13 @@
   --primed-progress-bg: #014548;
 }
 
+html {
+  scrollbar-gutter: stable;
+}
+
 body {
   overflow-x: hidden;
+  overflow-y: scroll;
 }
 body .questionnaire-wrapper {
   background: var(--primed-color-bg, #ffffff);

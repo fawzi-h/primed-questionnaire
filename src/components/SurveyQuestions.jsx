@@ -123,6 +123,38 @@ const SurveyQuestions = () => {
   const [token, setToken] = useState(null);
   const [animKey, setAnimKey] = useState(0);
   const autoAdvanceRef = useRef(false);
+  const questionContainerRef = useRef(null);
+  const primaryFocusRef = useRef(null);
+
+  const setPrimaryFocus = useCallback((node) => {
+    primaryFocusRef.current = node;
+  }, []);
+
+  const focusCurrentStep = useCallback(() => {
+    window.requestAnimationFrame(() => {
+      const preferredTarget =
+        primaryFocusRef.current ||
+        questionContainerRef.current?.querySelector(
+          "input:not([disabled]), textarea:not([disabled]), button:not([disabled]), [tabindex]",
+        ) ||
+        questionContainerRef.current;
+
+      if (!preferredTarget || typeof preferredTarget.focus !== "function") {
+        return;
+      }
+
+      preferredTarget.focus({ preventScroll: true });
+
+      if (
+        (preferredTarget instanceof HTMLInputElement ||
+          preferredTarget instanceof HTMLTextAreaElement) &&
+        typeof preferredTarget.select === "function" &&
+        preferredTarget.type !== "date"
+      ) {
+        preferredTarget.select();
+      }
+    });
+  }, []);
   const formatDateInputValue = (date) => {
     const year = date.getFullYear();
     const month = `${date.getMonth() + 1}`.padStart(2, "0");
@@ -578,6 +610,10 @@ const SurveyQuestions = () => {
     scrollViewportToTop();
   }, [currentQuestion, showConsentStep]);
 
+  useEffect(() => {
+    focusCurrentStep();
+  }, [animKey, currentQuestion, focusCurrentStep, medicareCheckbox, showConsentStep]);
+
   const isQuestionAnswered = useCallback((index) => {
     if (!questions[index]) return false;
 
@@ -860,6 +896,7 @@ const SurveyQuestions = () => {
               <button
                 key={i}
                 type="button"
+                ref={i === 0 ? setPrimaryFocus : null}
                 className={`sq-mcq-card${selected ? " sq-mcq-card--selected" : ""}`}
                 style={{ animationDelay: `${i * 50}ms` }}
                 onClick={() => {
@@ -907,6 +944,7 @@ const SurveyQuestions = () => {
         {mcqOtherSelected && (
           <input
             type="text"
+            ref={setPrimaryFocus}
             className="sq-chip-other-input"
             placeholder="Please specify…"
             value={otherTexts[question.key] || ""}
@@ -941,6 +979,7 @@ const SurveyQuestions = () => {
               <button
                 key={i}
                 type="button"
+                ref={i === 0 ? setPrimaryFocus : null}
                 className={`sq-chip${isSelected ? " sq-chip--selected" : ""}`}
                 style={{ animationDelay: `${i * 30}ms` }}
                 onClick={() => {
@@ -1003,6 +1042,7 @@ const SurveyQuestions = () => {
         {otherSelected && (
           <input
             type="text"
+            ref={setPrimaryFocus}
             className="sq-chip-other-input"
             placeholder="Please specify…"
             value={otherTexts[question.key] || ""}
@@ -1032,6 +1072,7 @@ const SurveyQuestions = () => {
     <div>
       <input
         type="text"
+        ref={setPrimaryFocus}
         className="sq-input"
         value={answers[question.key] || ""}
         onChange={(e) => {
@@ -1059,6 +1100,7 @@ const SurveyQuestions = () => {
   const renderTextarea = (question) => (
     <div>
       <textarea
+        ref={setPrimaryFocus}
         className="sq-textarea"
         value={answers[question.key] || ""}
         onChange={(e) => handleAnswer(question.key, e.target.value)}
@@ -1081,6 +1123,7 @@ const SurveyQuestions = () => {
       <div>
         <input
           type="date"
+          ref={setPrimaryFocus}
           className="sq-input"
           max={maxDate}
           value={answers[question.key] || ""}
@@ -1112,6 +1155,7 @@ const SurveyQuestions = () => {
         <div>
           <input
             type="text"
+            ref={!medicareCheckbox ? setPrimaryFocus : null}
             className="sq-input"
             value={answers.medicare_number || ""}
             onChange={(e) => {
@@ -1163,6 +1207,7 @@ const SurveyQuestions = () => {
             </p>
             <input
               type="text"
+              ref={medicareCheckbox ? null : setPrimaryFocus}
               className="sq-input"
               value={answers.individual_reference_number || ""}
               onChange={(e) => {
@@ -1245,6 +1290,7 @@ const SurveyQuestions = () => {
           </p>
           <input
             type="text"
+            ref={medicareCheckbox ? setPrimaryFocus : null}
             className="sq-input"
             value={answers.ihi_number || ""}
             onChange={(e) => handleAnswer("ihi_number", e.target.value)}
@@ -1277,19 +1323,26 @@ const SurveyQuestions = () => {
 
   const renderConsentContent = () => (
     <div className="sq-question-container" key="consent">
-      <div className="sq-question-number">Final Step</div>
-      <h2 className="sq-question-text">
-        Before we submit, please confirm the following:
-      </h2>
-      <div className="sq-answer-area">
-        <div className="sq-consent-list">
+      <div
+        ref={questionContainerRef}
+        className="sq-question-focus-anchor"
+        tabIndex={-1}
+      >
+        <div className="sq-question-number">Final Step</div>
+        <h2 className="sq-question-text">
+          Before we submit, please confirm the following:
+        </h2>
+        <div className="sq-answer-area">
+          <div className="sq-consent-list">
           {consentStatements.map((statement, i) => {
             const checked = consentChecked[i] || false;
 
             return (
               <div
                 key={i}
+                ref={i === 0 ? setPrimaryFocus : null}
                 className="sq-consent-row"
+                tabIndex={0}
                 onClick={() => {
                   const updated = consentStatements.map((_, idx) =>
                     idx === i
@@ -1297,6 +1350,17 @@ const SurveyQuestions = () => {
                       : consentChecked[idx] || false,
                   );
                   setConsentChecked(updated);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    const updated = consentStatements.map((_, idx) =>
+                      idx === i
+                        ? !consentChecked[idx]
+                        : consentChecked[idx] || false,
+                    );
+                    setConsentChecked(updated);
+                  }
                 }}
               >
                 <div
@@ -1327,11 +1391,12 @@ const SurveyQuestions = () => {
               </div>
             );
           })}
-        </div>
+          </div>
 
-        {submitError && (
-          <p className="sq-submit-error">Submission failed: {submitError}</p>
-        )}
+          {submitError && (
+            <p className="sq-submit-error">Submission failed: {submitError}</p>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -1513,6 +1578,7 @@ const SurveyQuestions = () => {
                 <button
                   key={qIdx}
                   type="button"
+                  tabIndex={-1}
                   className={`sq-dot${isDone ? " sq-dot--done" : ""}${
                     isActive ? " sq-dot--active" : ""
                   }${isFuture ? " sq-dot--future" : ""}`}
@@ -1536,20 +1602,26 @@ const SurveyQuestions = () => {
           renderConsentContent()
         ) : currentQ ? (
           <div className="sq-question-container" key={animKey}>
-            {showSectionBadge && (
-              <div className="sq-section-badge">{currentSection}</div>
-            )}
-            <div className="sq-question-number">
-              Question {currentVisibleIndex + 1} of {totalVisible}
-            </div>
-            <h2 className="sq-question-text">
-              {sanitizeInput(currentQ.question)}
-            </h2>
-            {currentQ.type === "multi_select" && (
-              <p className="sq-subtitle">Select all that apply</p>
-            )}
-            <div className="sq-answer-area">
-              {renderAnswerType(currentQ, currentQuestion)}
+            <div
+              ref={questionContainerRef}
+              className="sq-question-focus-anchor"
+              tabIndex={-1}
+            >
+              {showSectionBadge && (
+                <div className="sq-section-badge">{currentSection}</div>
+              )}
+              <div className="sq-question-number">
+                Question {currentVisibleIndex + 1} of {totalVisible}
+              </div>
+              <h2 className="sq-question-text">
+                {sanitizeInput(currentQ.question)}
+              </h2>
+              {currentQ.type === "multi_select" && (
+                <p className="sq-subtitle">Select all that apply</p>
+              )}
+              <div className="sq-answer-area">
+                {renderAnswerType(currentQ, currentQuestion)}
+              </div>
             </div>
           </div>
         ) : (
@@ -1563,13 +1635,6 @@ const SurveyQuestions = () => {
         <div className="sq-footer">
           {showConsentStep ? (
             <>
-              <button
-                type="button"
-                className="sq-back-btn"
-                onClick={() => setShowConsentStep(false)}
-              >
-                <BackArrow />
-              </button>
               <div />
               <button
                 type="button"
@@ -1579,19 +1644,16 @@ const SurveyQuestions = () => {
               >
                 {surveyLoading ? "Submitting…" : "Submit"}
               </button>
-            </>
-          ) : (
-            <>
               <button
                 type="button"
-                className={`sq-back-btn${
-                  currentVisibleIndex === 0 ? " sq-back-btn--hidden" : ""
-                }`}
-                onClick={handlePrevious}
+                className="sq-back-btn"
+                onClick={() => setShowConsentStep(false)}
               >
                 <BackArrow />
               </button>
-
+            </>
+          ) : (
+            <>
               {answered && currentQ?.type !== "MCQs" ? (
                 <div className="sq-enter-hint" key={`hint-${animKey}`}>
                   Press <kbd className="sq-kbd">Enter ↵</kbd>
@@ -1607,6 +1669,15 @@ const SurveyQuestions = () => {
                 disabled={!answered}
               >
                 Continue
+              </button>
+              <button
+                type="button"
+                className={`sq-back-btn${
+                  currentVisibleIndex === 0 ? " sq-back-btn--hidden" : ""
+                }`}
+                onClick={handlePrevious}
+              >
+                <BackArrow />
               </button>
             </>
           )}

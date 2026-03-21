@@ -44,12 +44,24 @@
   align-items: center;
   justify-content: center;
   padding: 40px 24px 140px; /* bottom padding clears fixed footer */
+  overflow-x: hidden;
+  overflow-y: hidden;
+  overflow-y: clip;
 }
 
 .sq-question-container {
   width: 100%;
   max-width: 600px;
   animation: sq-slideIn 400ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.sq-question-focus-anchor {
+  border-radius: 20px;
+  outline: none;
+}
+
+.sq-question-focus-anchor:focus {
+  box-shadow: 0 0 0 3px rgba(67, 166, 170, 0.3);
 }
 
 /* ── Progress Bar ───────────────────────────────────────────── */
@@ -204,9 +216,21 @@
   border-color: var(--primed-color-focus, #43a6aa) !important;
 }
 
+.sq-mcq-card:focus,
+.sq-mcq-card:focus-visible {
+  outline: none;
+  border-color: var(--primed-color-focus, #43a6aa) !important;
+  box-shadow: none;
+}
+
 .sq-mcq-card--selected {
   border-color: var(--primed-color-primary, #014548) !important;
   background: var(--primed-color-primary-light, #e5ecec);
+}
+
+.sq-mcq-card--selected:focus,
+.sq-mcq-card--selected:focus-visible {
+  border-color: var(--primed-color-focus, #43a6aa) !important;
 }
 
 .sq-mcq-radio {
@@ -262,10 +286,22 @@
   border-color: var(--primed-color-focus, #43a6aa) !important;
 }
 
+.sq-chip:focus,
+.sq-chip:focus-visible {
+  outline: none;
+  border-color: var(--primed-color-focus, #43a6aa) !important;
+  box-shadow: none;
+}
+
 .sq-chip--selected {
   background: var(--primed-color-primary, #014548);
   border-color: var(--primed-color-primary, #014548) !important;
   color: var(--primed-color-cream, #F9F4EB);
+}
+
+.sq-chip--selected:focus,
+.sq-chip--selected:focus-visible {
+  border-color: var(--primed-color-focus, #43a6aa) !important;
 }
 
 .sq-chip-checkbox {
@@ -301,6 +337,7 @@
 
 .sq-chip-other-input:focus {
   border-color: var(--primed-color-focus, #43a6aa);
+  box-shadow: 0 0 0 3px rgba(67, 166, 170, 0.16);
 }
 
 /* ── Form Inputs ────────────────────────────────────────────── */
@@ -323,6 +360,7 @@
 
 .sq-input:focus {
   border-color: var(--primed-color-focus, #43a6aa);
+  box-shadow: 0 0 0 3px rgba(67, 166, 170, 0.16);
 }
 
 .sq-input::placeholder {
@@ -409,6 +447,7 @@ input[type="date"].sq-input::-webkit-date-and-time-value {
 
 .sq-textarea:focus {
   border-color: var(--primed-color-focus, #43a6aa);
+  box-shadow: 0 0 0 3px rgba(67, 166, 170, 0.16);
 }
 
 .sq-textarea::placeholder {
@@ -512,6 +551,16 @@ input[type="date"].sq-input::-webkit-date-and-time-value {
   cursor: pointer;
 }
 
+.sq-consent-row:focus {
+  outline: none;
+}
+
+.sq-consent-row:focus-visible {
+  outline: 2px solid var(--primed-color-focus, #43a6aa);
+  outline-offset: 4px;
+  border-radius: 12px;
+}
+
 .sq-consent-row:first-child {
   border-top: 1px solid var(--primed-color-fog, #E5ECEC);
 }
@@ -573,10 +622,18 @@ input[type="date"].sq-input::-webkit-date-and-time-value {
   display: flex;
   align-items: center;
   justify-content: center;
+  order: -1;
 }
 
 .sq-back-btn:hover {
   background: var(--primed-color-primary-light, #e5ecec);
+}
+
+.sq-back-btn:focus,
+.sq-back-btn:focus-visible {
+  outline: none;
+  background: var(--primed-color-primary-light, #e5ecec);
+  box-shadow: 0 0 0 3px rgba(67, 166, 170, 0.22);
 }
 
 .sq-back-btn--hidden {
@@ -629,6 +686,14 @@ input[type="date"].sq-input::-webkit-date-and-time-value {
 .sq-continue-btn:hover:not(:disabled) {
   background: var(--primed-color-primary, #014548);
   color: var(--primed-color-accent, #faf08c);
+}
+
+.sq-continue-btn:focus,
+.sq-continue-btn:focus-visible {
+  outline: none;
+  background: var(--primed-color-primary, #014548);
+  color: var(--primed-color-accent, #faf08c);
+  box-shadow: none;
 }
 
 .sq-continue-btn:disabled {
@@ -762,6 +827,13 @@ input[type="date"].sq-input::-webkit-date-and-time-value {
   border-color: var(--primed-color-focus, #43a6aa) !important;
 }
 
+.sq-wrapper .sq-chip:focus,
+.sq-wrapper .sq-chip:focus-visible,
+.sq-wrapper .sq-chip--selected:focus,
+.sq-wrapper .sq-chip--selected:focus-visible {
+  border-color: var(--primed-color-focus, #43a6aa) !important;
+}
+
 .sq-wrapper .sq-chip--selected {
   border-color: var(--primed-color-primary, #014548) !important;
 }
@@ -771,6 +843,13 @@ input[type="date"].sq-input::-webkit-date-and-time-value {
 }
 
 .sq-wrapper .sq-mcq-card:hover {
+  border-color: var(--primed-color-focus, #43a6aa) !important;
+}
+
+.sq-wrapper .sq-mcq-card:focus,
+.sq-wrapper .sq-mcq-card:focus-visible,
+.sq-wrapper .sq-mcq-card--selected:focus,
+.sq-wrapper .sq-mcq-card--selected:focus-visible {
   border-color: var(--primed-color-focus, #43a6aa) !important;
 }
 
