@@ -71,7 +71,7 @@ const treatments = [
   },
   {
     slug: "womens-health",
-    id: 11,
+    id: 7,
     label: "Women's Health",
     img: CDN + "69ac208fbfbefc240c2e45c1_Women-health.jpeg",
   },
