@@ -336,6 +336,31 @@ So:
 - session/embed naming is `treatmentName` / `treatmentId`
 - API naming is still `treatment_id`
 
+### Input Length Limits
+
+The questionnaire currently enforces these text limits:
+- `Other` free-text inputs are capped at `255` characters
+- main textarea questions remain capped at `1000` characters
+
+Current questions with an `Other` input:
+- `medical_conditions_values`
+  - `Do you have any current or past medical conditions or injuries? (Select all that apply)`
+- `medications_details`
+  - `Please select any medications or supplements you are currently taking.`
+- `referral_source`
+  - `How did you hear about Primed?`
+
+Implementation:
+- `src/components/SurveyQuestions.jsx`
+  - `OTHER_TEXT_MAX_LENGTH = 255`
+  - `Other` inputs use `maxLength={255}` and show `Max 255 characters` once the limit is reached
+  - textarea questions keep `maxLength={1000}`
+
+Automated coverage:
+- `tests/unit/SurveyQuestions.test.jsx`
+  - verifies `Other` input max length and hint behaviour
+  - verifies textarea max length remains `1000`
+
 ### Passing Treatment From Session Storage
 
 Minimal loader example:

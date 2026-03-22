@@ -14,6 +14,7 @@ import { format } from "date-fns";
 import "./SurveyQuestions.css";
 
 const LOCAL_STORAGE_KEY = "primed_survey";
+const OTHER_TEXT_MAX_LENGTH = 255;
 const TREATMENT_QUESTION_KEYS = [
   "anti-ageing-vitality",
   "cognitive-health",
@@ -687,6 +688,42 @@ const SurveyQuestions = () => {
     consentChecked.length === consentStatements.length &&
     consentChecked.every(Boolean);
 
+  const buildPayload = useCallback((data, isCompleted) => {
+    const payload = {};
+
+    questions.forEach((q) => {
+      const key = q.key;
+      const val = data[key];
+
+      if (q.type === "multi_select" && Array.isArray(val)) {
+        payload[key] = val.join(", ");
+      } else if (key === "medicare_expiry" && val instanceof Date) {
+        payload[key] = format(val, "yyyy-MM");
+      } else {
+        payload[key] = val || "";
+      }
+    });
+
+    payload.treatment_id = resolvedTreatment.treatmentId || id;
+    payload.is_completed = isCompleted;
+    payload.user_id = userId;
+    payload.ihi_number = data.ihi_number || "";
+
+    return payload;
+  }, [id, questions, resolvedTreatment.treatmentId, userId]);
+
+  const saveProgressOnAdvance = useCallback(async (dataOverride) => {
+    try {
+      const data = dataOverride || answers;
+      const payload = buildPayload(data, false);
+      await api.post("/api/register/complete", payload);
+    } catch (error) {
+      const detail =
+        error.response?.data?.detail || error.response?.data || error.message;
+      debugError("saveProgressOnAdvance:error", detail);
+    }
+  }, [answers, buildPayload]);
+
   const handleNext = useCallback(() => {
     debug("handleNext:start", {
       currentQuestion,
@@ -791,30 +828,6 @@ const SurveyQuestions = () => {
     setAnswers((prev) => ({ ...prev, [key]: answer }));
   };
 
-  const buildPayload = useCallback((data, isCompleted) => {
-    const payload = {};
-
-    questions.forEach((q) => {
-      const key = q.key;
-      const val = data[key];
-
-      if (q.type === "multi_select" && Array.isArray(val)) {
-        payload[key] = val.join(", ");
-      } else if (key === "medicare_expiry" && val instanceof Date) {
-        payload[key] = format(val, "yyyy-MM");
-      } else {
-        payload[key] = val || "";
-      }
-    });
-
-    payload.treatment_id = resolvedTreatment.treatmentId || id;
-    payload.is_completed = isCompleted;
-    payload.user_id = userId;
-    payload.ihi_number = data.ihi_number || "";
-
-    return payload;
-  }, [id, questions, resolvedTreatment.treatmentId, userId]);
-
   const handleSubmit = useCallback(async () => {
     setSurveyLoading(true);
     try {
@@ -869,18 +882,6 @@ const SurveyQuestions = () => {
     navigate,
     token,
   ]);
-
-  const saveProgressOnAdvance = useCallback(async (dataOverride) => {
-    try {
-      const data = dataOverride || answers;
-      const payload = buildPayload(data, false);
-      await api.post("/api/register/complete", payload);
-    } catch (error) {
-      const detail =
-        error.response?.data?.detail || error.response?.data || error.message;
-      debugError("saveProgressOnAdvance:error", detail);
-    }
-  }, [answers, buildPayload]);
 
   const handleContinue = () => hidePopup();
 
@@ -1105,12 +1106,17 @@ const SurveyQuestions = () => {
             className="sq-chip-other-input"
             placeholder="Please specify…"
             value={otherTexts[question.key] || ""}
+            maxLength={OTHER_TEXT_MAX_LENGTH}
             autoFocus
             onChange={(e) =>
               setOtherTexts((p) => ({ ...p, [question.key]: e.target.value }))
             }
           />
         )}
+        {mcqOtherSelected &&
+          (otherTexts[question.key] || "").length >= OTHER_TEXT_MAX_LENGTH && (
+            <p className="sq-field-description">Max 255 characters</p>
+          )}
       </div>
     );
   };
@@ -1226,6 +1232,7 @@ const SurveyQuestions = () => {
             className="sq-chip-other-input"
             placeholder="Please specify…"
             value={otherTexts[question.key] || ""}
+            maxLength={OTHER_TEXT_MAX_LENGTH}
             autoFocus
             onChange={(e) => {
               setOtherTexts((p) => ({
@@ -1244,6 +1251,10 @@ const SurveyQuestions = () => {
             }}
           />
         )}
+        {otherSelected &&
+          (otherTexts[question.key] || "").length >= OTHER_TEXT_MAX_LENGTH && (
+            <p className="sq-field-description">Max 255 characters</p>
+          )}
       </div>
     );
   };

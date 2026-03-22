@@ -65,7 +65,9 @@ const mockQuestions = [
 ];
 
 describe("SurveyQuestions", () => {
-  function renderSurvey() {
+  function renderSurvey(questions = mockQuestions) {
+    vi.mocked(fetchQuestionsOnce).mockResolvedValue(questions);
+
     return render(
       <SurveyConfigProvider config={{ medicareCardImageUrl: "", dashboardUrl: "" }}>
         <MemoryRouter
@@ -87,7 +89,6 @@ describe("SurveyQuestions", () => {
   }
 
   beforeEach(() => {
-    vi.mocked(fetchQuestionsOnce).mockResolvedValue(mockQuestions);
     sessionStorage.clear();
   });
 
@@ -140,5 +141,80 @@ describe("SurveyQuestions", () => {
     expect(
       screen.getByText("Medicare number should not exceed 10 digits"),
     ).toBeInTheDocument();
+  });
+
+  it('limits "Other" inputs to 255 characters and shows a hint at the limit', async () => {
+    const user = userEvent.setup();
+    const otherQuestions = [
+      {
+        id: 1,
+        key: "referral_source",
+        question: "How did you hear about Primed?",
+        type: "MCQs",
+        choices: ["Google/Bing", "Other"],
+        placeholder: null,
+        checkbox: false,
+        image: false,
+      },
+      {
+        id: 2,
+        key: "consent_provided",
+        question: "Before we submit, please confirm the following:",
+        type: "multi_select",
+        choices: ["Consent"],
+        placeholder: null,
+        checkbox: false,
+        image: false,
+      },
+    ];
+
+    renderSurvey(otherQuestions);
+
+    await screen.findByRole("heading", {
+      name: /how did you hear about primed\?/i,
+    });
+
+    await user.click(screen.getByRole("button", { name: "Other", exact: true }));
+
+    const otherInput = screen.getByPlaceholderText("Please specify…");
+    expect(otherInput).toHaveAttribute("maxLength", "255");
+
+    await user.type(otherInput, "a".repeat(300));
+
+    expect(otherInput).toHaveValue("a".repeat(255));
+    expect(screen.getByText("Max 255 characters")).toBeInTheDocument();
+  });
+
+  it("keeps textarea questions capped at 1000 characters", async () => {
+    const textareaQuestions = [
+      {
+        id: 1,
+        key: "family_history_details",
+        question: "Please explain the medical illness that has run within your family.",
+        type: "Textarea",
+        choices: null,
+        placeholder: "Explain Here",
+        checkbox: false,
+        image: false,
+      },
+      {
+        id: 2,
+        key: "consent_provided",
+        question: "Before we submit, please confirm the following:",
+        type: "multi_select",
+        choices: ["Consent"],
+        placeholder: null,
+        checkbox: false,
+        image: false,
+      },
+    ];
+
+    renderSurvey(textareaQuestions);
+
+    await screen.findByRole("heading", {
+      name: /please explain the medical illness that has run within your family\./i,
+    });
+
+    expect(screen.getByRole("textbox")).toHaveAttribute("maxLength", "1000");
   });
 });
