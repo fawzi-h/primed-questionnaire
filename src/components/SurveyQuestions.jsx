@@ -729,6 +729,7 @@ const SurveyQuestions = () => {
     }
 
     const nextVisibleIdx = currentVisibleIndex + 1;
+    void saveProgressOnAdvance();
     if (nextVisibleIdx < visibleIndices.length) {
       goTo(visibleIndices[nextVisibleIdx]);
     } else {
@@ -743,6 +744,7 @@ const SurveyQuestions = () => {
     isQuestionAnswered,
     medicareCheckbox,
     questions,
+    saveProgressOnAdvance,
     visibleIndices,
   ]);
 
@@ -867,6 +869,18 @@ const SurveyQuestions = () => {
     navigate,
     token,
   ]);
+
+  const saveProgressOnAdvance = useCallback(async (dataOverride) => {
+    try {
+      const data = dataOverride || answers;
+      const payload = buildPayload(data, false);
+      await api.post("/api/register/complete", payload);
+    } catch (error) {
+      const detail =
+        error.response?.data?.detail || error.response?.data || error.message;
+      debugError("saveProgressOnAdvance:error", detail);
+    }
+  }, [answers, buildPayload]);
 
   const handleContinue = () => hidePopup();
 
@@ -1062,6 +1076,7 @@ const SurveyQuestions = () => {
 
                   if (canAutoAdvance && autoAdvanceRef.current && !skipAutoAdvance) {
                     setTimeout(() => {
+                      void saveProgressOnAdvance(newAnswers);
                       const newOrdered = getOrderedVisible(newAnswers);
                       const curIdx = newOrdered.indexOf(index);
                       const nextIdx = curIdx + 1;
@@ -1182,6 +1197,7 @@ const SurveyQuestions = () => {
                   if (canChipAutoAdvance && autoAdvanceRef.current && !isNone) {
                     const newAnswers = { ...answers, [question.key]: newValues };
                     setTimeout(() => {
+                      void saveProgressOnAdvance(newAnswers);
                       const newOrdered = getOrderedVisible(newAnswers);
                       const curIdx = newOrdered.indexOf(index);
                       const nextIdx = curIdx + 1;
