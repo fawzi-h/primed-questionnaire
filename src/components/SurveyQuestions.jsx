@@ -191,8 +191,6 @@ const SurveyQuestions = () => {
   const { medicareCardImageUrl, dashboardUrl } = useSurveyConfig();
 
   const clearSurveySession = useCallback((currentToken = token) => {
-    sessionStorage.removeItem("treatment_plan");
-    sessionStorage.removeItem("treatment_id");
     sessionStorage.removeItem("treatmentName");
     sessionStorage.removeItem("treatmentId");
     sessionStorage.removeItem(LOCAL_STORAGE_KEY);
@@ -207,18 +205,12 @@ const SurveyQuestions = () => {
   const getResolvedTreatment = useCallback(() => {
     const params = new URLSearchParams(location.search);
 
-    const queryTreatmentName = params.get("treatment_plan") || "";
-    const queryTreatmentId = params.get("treatment_id") || "";
+    const queryTreatmentName = params.get("treatmentName") || "";
+    const queryTreatmentId = params.get("treatmentId") || "";
 
-    const sessionTreatmentName =
-      sessionStorage.getItem("treatment_plan") ||
-      sessionStorage.getItem("treatmentName") ||
-      "";
+    const sessionTreatmentName = sessionStorage.getItem("treatmentName") || "";
 
-    const sessionTreatmentId =
-      sessionStorage.getItem("treatment_id") ||
-      sessionStorage.getItem("treatmentId") ||
-      "";
+    const sessionTreatmentId = sessionStorage.getItem("treatmentId") || "";
 
     const resolvedTreatmentName =
       queryTreatmentName || treatmentName || sessionTreatmentName || "";
@@ -264,8 +256,6 @@ const SurveyQuestions = () => {
     });
 
     debug("sessionStorage snapshot on mount", {
-      treatment_plan: sessionStorage.getItem("treatment_plan"),
-      treatment_id: sessionStorage.getItem("treatment_id"),
       treatmentName: sessionStorage.getItem("treatmentName"),
       treatmentId: sessionStorage.getItem("treatmentId"),
       sessionData: sessionStorage.getItem("sessionData"),
@@ -355,18 +345,14 @@ const SurveyQuestions = () => {
     debug("resolve treatment effect:setResolvedTreatment", resolved);
 
     if (resolved.treatmentName) {
-      sessionStorage.setItem("treatment_plan", resolved.treatmentName);
       sessionStorage.setItem("treatmentName", resolved.treatmentName);
     }
 
     if (resolved.treatmentId) {
-      sessionStorage.setItem("treatment_id", resolved.treatmentId);
       sessionStorage.setItem("treatmentId", resolved.treatmentId);
     }
 
     debug("resolve treatment effect:end", {
-      treatment_plan: sessionStorage.getItem("treatment_plan"),
-      treatment_id: sessionStorage.getItem("treatment_id"),
       treatmentName: sessionStorage.getItem("treatmentName"),
       treatmentId: sessionStorage.getItem("treatmentId"),
     });
@@ -454,7 +440,6 @@ const SurveyQuestions = () => {
       const slug =
         resolvedTreatment.treatmentName ||
         treatmentName ||
-        sessionStorage.getItem("treatment_plan") ||
         sessionStorage.getItem("treatmentName") ||
         "";
 

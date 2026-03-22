@@ -168,10 +168,47 @@ The widget can be configured either:
 ```html
 <div
   id="primed-survey"
-  data-treatment-plan-id="1"
-  data-treatment-plan-name="weight-loss"
+  data-treatment-id="1"
+  data-treatment-name="weight-loss"
 ></div>
 <script type="module" src="survey-widget.js"></script>
+```
+
+### Passing Treatment From Session Storage
+
+```html
+<script>
+const treatmentMap = {
+  "muscle-strength-support": 3,
+  "anti-ageing": 1,
+  "weight-loss": 2,
+  "injury-repair-recovery": 4,
+  "sexual-health-libido": 5,
+  "womens-health": 7,
+  "gut-health-immunity": 8,
+  "cognitive-health": 9,
+  "skin-care": 10
+};
+
+(function () {
+  "use strict";
+
+  document.addEventListener("DOMContentLoaded", function () {
+    try {
+      const treatmentName = sessionStorage.getItem("treatment_plan");
+      if (!treatmentName) return;
+
+      const surveyDiv = document.getElementById("primed-survey");
+      if (!surveyDiv) return;
+
+      surveyDiv.setAttribute("data-treatment-name", treatmentName);
+      surveyDiv.setAttribute("data-treatment-id", treatmentMap[treatmentName] || "");
+    } catch (err) {
+      console.warn("Error setting treatment attributes:", err);
+    }
+  });
+})();
+</script>
 ```
 
 ### Programmatic Config
@@ -179,8 +216,8 @@ The widget can be configured either:
 ```html
 <script>
   window.SURVEY_CONFIG = {
-    treatmentPlanId: "1",
-    treatmentPlanName: "weight-loss",
+    treatmentId: "1",
+    treatmentName: "weight-loss",
     submitBtnClass: "btn btn-primary",
     navBtnClass: "btn btn-outline-secondary",
     inputClass: "my-input",

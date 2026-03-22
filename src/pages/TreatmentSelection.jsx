@@ -58,7 +58,7 @@ const treatments = [
     img: CDN + "6993e4995da0f84ba384d985_Gut%20Health%20.webp",
   },
   {
-    slug: "cognitive-support",
+    slug: "cognitive-health",
     id: 9,
     label: "Cognitive Support",
     img: CDN + "698d1570ede5aa07cb47dffe_Placeholder%20Image-1.webp",
@@ -117,26 +117,15 @@ const TreatmentSelection = () => {
   const resolvedTreatment = useMemo(() => {
     const params = new URLSearchParams(location.search);
 
-    const queryTreatmentName =
-      params.get("treatment_plan") || params.get("treatmentName") || "";
+    const queryTreatmentName = params.get("treatmentName") || "";
+    const queryTreatmentId = params.get("treatmentId") || "";
 
-    const queryTreatmentId =
-      params.get("treatment_id") || params.get("treatmentId") || "";
-
-    const sessionTreatmentName =
-      sessionStorage.getItem("treatment_plan") ||
-      sessionStorage.getItem("treatmentName") ||
-      "";
-
-    const sessionTreatmentId =
-      sessionStorage.getItem("treatment_id") ||
-      sessionStorage.getItem("treatmentId") ||
-      sessionStorage.getItem("treatment_plan_id") ||
-      "";
+    const sessionTreatmentName = sessionStorage.getItem("treatmentName") || "";
+    const sessionTreatmentId = sessionStorage.getItem("treatmentId") || "";
 
     const parentDiv = document.getElementById("primed-survey");
     const divTreatmentName =
-      parentDiv?.getAttribute("data-treatment-plan") || "";
+      parentDiv?.getAttribute("data-treatment-name") || "";
     const divTreatmentId = parentDiv?.getAttribute("data-treatment-id") || "";
 
     const finalTreatmentName =
@@ -161,23 +150,11 @@ const TreatmentSelection = () => {
 
   useEffect(() => {
     if (resolvedTreatment.treatmentName) {
-      sessionStorage.setItem("treatment_plan", resolvedTreatment.treatmentName);
       sessionStorage.setItem("treatmentName", resolvedTreatment.treatmentName);
     }
 
     if (resolvedTreatment.treatmentId) {
-      sessionStorage.setItem(
-        "treatment_id",
-        String(resolvedTreatment.treatmentId),
-      );
-      sessionStorage.setItem(
-        "treatmentId",
-        String(resolvedTreatment.treatmentId),
-      );
-      sessionStorage.setItem(
-        "treatment_plan_id",
-        String(resolvedTreatment.treatmentId),
-      );
+      sessionStorage.setItem("treatmentId", String(resolvedTreatment.treatmentId));
     }
   }, [resolvedTreatment]);
 
@@ -196,11 +173,8 @@ const TreatmentSelection = () => {
     setSelected({ slug, id, label });
 
     try {
-      sessionStorage.setItem("treatment_plan", slug);
       sessionStorage.setItem("treatmentName", slug);
-      sessionStorage.setItem("treatment_id", String(id));
       sessionStorage.setItem("treatmentId", String(id));
-      sessionStorage.setItem("treatment_plan_id", String(id));
     } catch (err) {
       console.warn("Could not save treatment plan to sessionStorage:", err);
     }

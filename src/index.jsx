@@ -13,8 +13,8 @@ import { sanitizeCss, sanitizeFont } from "./utils/validation";
  * Embed example
  * -------------
  *   <div id="primed-survey"
- *        data-treatment-plan-id="42"
- *        data-treatment-plan-name="weight-loss">
+ *        data-treatment-id="42"
+ *        data-treatment-name="weight-loss">
  *   </div>
  *   <script type="module" src="survey-widget.js"></script>
  *
@@ -66,15 +66,15 @@ function readConfig() {
 
 function buildInitialEntry() {
   const { config, d } = readConfig();
-  const treatmentPlanId   = config.treatmentPlanId   || d.treatmentPlanId   || "";
-  const treatmentPlanName = config.treatmentPlanName || d.treatmentPlanName || "";
+  const treatmentId = config.treatmentId || d.treatmentId || "";
+  const treatmentName = config.treatmentName || d.treatmentName || "";
 
   // If a treatment plan is pre-set via data-* attributes or window.SURVEY_CONFIG,
   // skip TreatmentSelection and go directly to the assessment welcome screen.
-  if (!treatmentPlanName) {
+  if (!treatmentName) {
     return "/questionnaire";
   }
-  return `/questionnaire/${treatmentPlanName}/${treatmentPlanId}`;
+  return `/questionnaire/${treatmentName}/${treatmentId}`;
 }
 
 function buildClassConfig() {
