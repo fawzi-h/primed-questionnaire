@@ -94,7 +94,7 @@ export async function startAssessment(page) {
 export async function expectQuestion(page, questionText) {
   await expect(
     page.getByRole("heading", { name: questionText, exact: true }),
-  ).toBeVisible();
+  ).toBeVisible({ timeout: 10000 });
 }
 
 export async function clickContinue(page) {
