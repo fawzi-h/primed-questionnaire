@@ -174,11 +174,12 @@ The widget can be configured either:
 <script type="module" src="survey-widget.js"></script>
 ```
 
-### Passing Treatment From Session Storage
+### Final Treatment Id Map
 
-```html
-<script>
-const treatmentMap = {
+Use this slug/id map consistently anywhere treatment choice is saved before the widget loads:
+
+```js
+const treatmentIdMap = {
   "muscle-strength-support": 3,
   "anti-ageing": 1,
   "weight-loss": 2,
@@ -189,20 +190,172 @@ const treatmentMap = {
   "cognitive-health": 9,
   "skin-care": 10
 };
+```
 
+### External Click Script
+
+Use this on the host page where a treatment card/link is clicked before the questionnaire page loads.
+
+What it does:
+- reads `data-treatment-name` from the clicked element
+- resolves the id from `treatmentIdMap`
+- saves `treatmentName`, `treatmentId`, and `treatmentIdMap` into `sessionStorage`
+
+```html
+<script>
+(function () {
+  "use strict";
+
+  const treatmentIdMap = {
+    "muscle-strength-support": 3,
+    "anti-ageing": 1,
+    "weight-loss": 2,
+    "injury-repair-recovery": 4,
+    "sexual-health-libido": 5,
+    "womens-health": 7,
+    "gut-health-immunity": 8,
+    "cognitive-health": 9,
+    "skin-care": 10
+  };
+
+  function handleClick(e) {
+    const treatmentName = e.currentTarget.getAttribute("data-treatment-name");
+    if (!treatmentName) return;
+
+    const treatmentId = treatmentIdMap[treatmentName];
+    if (!treatmentId) {
+      console.warn("Unknown treatment name:", treatmentName);
+      return;
+    }
+
+    try {
+      sessionStorage.setItem("treatmentName", treatmentName);
+      sessionStorage.setItem("treatmentId", String(treatmentId));
+      sessionStorage.setItem("treatmentIdMap", JSON.stringify(treatmentIdMap));
+    } catch (err) {
+      console.warn("Storage failed:", err);
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    const links = document.querySelectorAll(
+      ".drop-down-goals-item[data-treatment-name], .home-done_blog-list_item-link[data-treatment-name]"
+    );
+
+    links.forEach((link) => {
+      link.addEventListener("click", handleClick);
+    });
+  });
+})();
+</script>
+```
+
+Matching clickable elements should use:
+
+```html
+<a class="drop-down-goals-item" data-treatment-name="womens-health">Women's Health</a>
+```
+
+### External Loader Script
+
+Use this on the page that renders `#primed-survey`.
+
+What it does:
+- reads `treatmentName`, `treatmentId`, and `treatmentIdMap` from `sessionStorage`
+- passes them onto the widget div as `data-*` attributes
+- does not recalculate the id again
+
+```html
+<script>
 (function () {
   "use strict";
 
   document.addEventListener("DOMContentLoaded", function () {
     try {
-      const treatmentName = sessionStorage.getItem("treatment_plan");
-      if (!treatmentName) return;
+      const treatmentName = sessionStorage.getItem("treatmentName");
+      const treatmentId = sessionStorage.getItem("treatmentId");
+      const treatmentIdMap = sessionStorage.getItem("treatmentIdMap");
+
+      if (!treatmentName || !treatmentId) return;
 
       const surveyDiv = document.getElementById("primed-survey");
       if (!surveyDiv) return;
 
       surveyDiv.setAttribute("data-treatment-name", treatmentName);
-      surveyDiv.setAttribute("data-treatment-id", treatmentMap[treatmentName] || "");
+      surveyDiv.setAttribute("data-treatment-id", treatmentId);
+
+      if (treatmentIdMap) {
+        surveyDiv.setAttribute("data-treatment-id-map", treatmentIdMap);
+      }
+    } catch (err) {
+      console.warn("Error setting treatment attributes:", err);
+    }
+  });
+})();
+</script>
+```
+
+### Session Keys Used By The Widget
+
+The widget now uses these session keys for treatment selection:
+- `treatmentName`
+- `treatmentId`
+- `treatmentIdMap` (host-side helper; passed through to the div but not used by the React app)
+
+The widget reads treatment values from:
+- `data-treatment-name`
+- `data-treatment-id`
+- `window.SURVEY_CONFIG.treatmentName`
+- `window.SURVEY_CONFIG.treatmentId`
+- route params `/questionnaire/:treatmentName/:id`
+- `sessionStorage.treatmentName`
+- `sessionStorage.treatmentId`
+
+Inside the React app:
+- `src/index.jsx` reads `treatmentName` / `treatmentId` from embed config to build the initial route
+- `src/pages/TreatmentSelection.jsx` reads and persists `treatmentName` / `treatmentId`
+- `src/components/SurveyQuestions.jsx` reads and clears `treatmentName` / `treatmentId`
+
+### Submission And Save Progress
+
+The session key is `treatmentId`, but the backend payload field remains `treatment_id`.
+
+This happens in `src/components/SurveyQuestions.jsx`:
+- submit uses `buildPayload(answers, true)`
+- save progress uses `buildPayload(answers, false)`
+- stopped/ineligible flows also use `buildPayload(..., false)`
+
+The payload includes:
+- all questionnaire answers by question key
+- `treatment_id`
+- `is_completed`
+- `user_id`
+- `ihi_number`
+
+So:
+- session/embed naming is `treatmentName` / `treatmentId`
+- API naming is still `treatment_id`
+
+### Passing Treatment From Session Storage
+
+Minimal loader example:
+
+```html
+<script>
+(function () {
+  "use strict";
+
+  document.addEventListener("DOMContentLoaded", function () {
+    try {
+      const treatmentName = sessionStorage.getItem("treatmentName");
+      const treatmentId = sessionStorage.getItem("treatmentId");
+      if (!treatmentName || !treatmentId) return;
+
+      const surveyDiv = document.getElementById("primed-survey");
+      if (!surveyDiv) return;
+
+      surveyDiv.setAttribute("data-treatment-name", treatmentName);
+      surveyDiv.setAttribute("data-treatment-id", treatmentId);
     } catch (err) {
       console.warn("Error setting treatment attributes:", err);
     }
