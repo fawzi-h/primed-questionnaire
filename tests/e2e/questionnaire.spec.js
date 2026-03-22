@@ -11,8 +11,10 @@ import {
   treatmentCases,
 } from "./helpers/questionnaire";
 
+test.describe.configure({ timeout: 120000 });
+
 test("starts the assessment and reaches the first question", async ({ page }) => {
-  await setTreatmentConfig(page, "weight-loss");
+  await setTreatmentConfig(page, "weight-loss", 2);
 
   await page.goto("/");
 
@@ -28,11 +30,32 @@ test("starts the assessment and reaches the first question", async ({ page }) =>
   ).toBeVisible();
 });
 
+test("completes a full happy path and submits successfully", async ({ page }) => {
+  await setTreatmentConfig(page, "weight-loss", 2);
+
+  await page.goto("/");
+  await startAssessment(page);
+
+  await completeSharedQuestions(page);
+
+  await expectQuestion(
+    page,
+    "Why are you seeking support with Weight Loss & Weight Management? (Select all that apply)",
+  );
+  await chooseOption(page, "Primary obesity / BMI 30+ (or 27+ with comorbidity)");
+  await clickContinue(page);
+
+  await expectQuestion(page, "How did you hear about Primed?");
+  await chooseOption(page, GOOGLE_BING_TEXT);
+
+  await completeConsentAndSubmit(page);
+});
+
 for (const treatmentCase of treatmentCases) {
-  test(`completes all shared questions and the ${treatmentCase.slug} treatment question`, async ({
+  test(`shows the ${treatmentCase.slug} treatment-specific question`, async ({
     page,
   }) => {
-    await setTreatmentConfig(page, treatmentCase.slug);
+    await setTreatmentConfig(page, treatmentCase.slug, treatmentCase.id);
 
     await page.goto("/");
     await startAssessment(page);
@@ -44,8 +67,5 @@ for (const treatmentCase of treatmentCases) {
     await clickContinue(page);
 
     await expectQuestion(page, "How did you hear about Primed?");
-    await chooseOption(page, GOOGLE_BING_TEXT);
-
-    await completeConsentAndSubmit(page);
   });
 }

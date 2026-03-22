@@ -21,7 +21,7 @@
 // Treatment slug -> Q19 key mapping and choices
 export const TREATMENT_QUESTION_MAP = {
   "anti-ageing": "anti-ageing-vitality",
-  "cognitive-support": "cognitive-health-performance",
+  "cognitive-support": "cognitive-health",
   "gut-health-immunity": "gut-health-immunity",
   "injury-repair-recovery": "injury-repair-recovery",
   "muscle-strength-support": "muscle-strength-building",
@@ -44,7 +44,7 @@ export const TREATMENT_QUESTION_CHOICES = {
     "Older adult / functional decline / frailty concerns (65+)",
     "I am interested in evidence-based protocols to support ageing well",
   ],
-  "cognitive-health-performance": [
+  "cognitive-health": [
     "Focus and concentration difficulties / ADHD-like symptoms",
     "Brain fog / low mental energy / post-viral fatigue / burnout",
     "Memory complaints / family history of cognitive decline",
@@ -131,7 +131,7 @@ export const METHOD_OF_DELIVERY_CHOICES = [
  */
 const TREATMENT_LABELS = {
   "anti-ageing-vitality": "Anti-Ageing & Vitality",
-  "cognitive-health-performance": "Cognitive Health & Performance",
+  "cognitive-health": "Cognitive Health & Performance",
   "gut-health-immunity": "Gut Health & Immunity",
   "injury-repair-recovery": "Injury Repair & Recovery",
   "muscle-strength-building": "Muscle Strength & Building",

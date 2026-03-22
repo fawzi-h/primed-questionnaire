@@ -16,7 +16,7 @@ import "./SurveyQuestions.css";
 const LOCAL_STORAGE_KEY = "primed_survey";
 const TREATMENT_QUESTION_KEYS = [
   "anti-ageing-vitality",
-  "cognitive-health-performance",
+  "cognitive-health",
   "gut-health-immunity",
   "injury-repair-recovery",
   "muscle-strength-building",
@@ -95,6 +95,7 @@ const SurveyQuestions = () => {
   const [errors, setErrors] = useState({});
   const [isVisible, setIsVisible] = useState(false);
   const [otherTexts, setOtherTexts] = useState({});
+  const [choiceFocusIndex, setChoiceFocusIndex] = useState({});
   const [resolvedTreatment, setResolvedTreatment] = useState({
     treatmentName: "",
     treatmentId: "",
@@ -125,6 +126,8 @@ const SurveyQuestions = () => {
   const autoAdvanceRef = useRef(false);
   const questionContainerRef = useRef(null);
   const primaryFocusRef = useRef(null);
+  const continueButtonRef = useRef(null);
+  const backButtonRef = useRef(null);
 
   const setPrimaryFocus = useCallback((node) => {
     primaryFocusRef.current = node;
@@ -786,7 +789,7 @@ const SurveyQuestions = () => {
     setAnswers((prev) => ({ ...prev, [key]: answer }));
   };
 
-  const buildPayload = (data, isCompleted) => {
+  const buildPayload = useCallback((data, isCompleted) => {
     const payload = {};
 
     questions.forEach((q) => {
@@ -808,9 +811,9 @@ const SurveyQuestions = () => {
     payload.ihi_number = data.ihi_number || "";
 
     return payload;
-  };
+  }, [id, questions, resolvedTreatment.treatmentId, userId]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     setSurveyLoading(true);
     try {
       await api.post("/api/register/complete", buildPayload(answers, true));
@@ -829,9 +832,17 @@ const SurveyQuestions = () => {
     } finally {
       setSurveyLoading(false);
     }
-  };
+  }, [
+    answers,
+    buildPayload,
+    clearSurveySession,
+    location.pathname,
+    location.search,
+    navigate,
+    token,
+  ]);
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     setSurveyLoading(true);
     try {
       await api.post("/api/register/complete", buildPayload(answers, false));
@@ -847,7 +858,15 @@ const SurveyQuestions = () => {
     } finally {
       setSurveyLoading(false);
     }
-  };
+  }, [
+    answers,
+    buildPayload,
+    clearSurveySession,
+    location.pathname,
+    location.search,
+    navigate,
+    token,
+  ]);
 
   const handleContinue = () => hidePopup();
 
@@ -862,14 +881,140 @@ const SurveyQuestions = () => {
     }
   };
 
+  useEffect(() => {
+    if (!showConsentStep) return;
+
+    const onConsentEnter = (e) => {
+      if (e.key !== "Enter") return;
+      if (!allConsentChecked || surveyLoading) return;
+
+      const tagName = e.target?.tagName;
+      if (tagName === "TEXTAREA" || tagName === "INPUT") return;
+
+      e.preventDefault();
+      handleSubmit();
+    };
+
+    window.addEventListener("keydown", onConsentEnter);
+    return () => window.removeEventListener("keydown", onConsentEnter);
+  }, [allConsentChecked, handleSubmit, showConsentStep, surveyLoading]);
+
   const handlePrevious = () => {
     const prevVisibleIdx = currentVisibleIndex - 1;
     if (prevVisibleIdx >= 0) goTo(visibleIndices[prevVisibleIdx]);
   };
 
+  const handleFooterKeyDown = useCallback((event, buttonType) => {
+    if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) {
+      return;
+    }
+
+    const isBackAvailable = !showConsentStep && currentVisibleIndex === 0
+      ? false
+      : !(backButtonRef.current?.classList.contains("sq-back-btn--hidden"));
+
+    if (!isBackAvailable) {
+      return;
+    }
+
+    let target = null;
+    if (buttonType === "continue") {
+      target =
+        event.key === "ArrowLeft" || event.key === "ArrowUp"
+          ? backButtonRef.current
+          : null;
+    } else if (buttonType === "back") {
+      target =
+        event.key === "ArrowRight" || event.key === "ArrowDown"
+          ? continueButtonRef.current
+          : null;
+    }
+
+    if (!target || typeof target.focus !== "function") {
+      return;
+    }
+
+    event.preventDefault();
+    target.focus();
+  }, [currentVisibleIndex, showConsentStep]);
+
+  const getChoiceActiveIndex = useCallback((questionKey, total, selectedIndexes = []) => {
+    const focusedIndex = choiceFocusIndex[questionKey];
+
+    if (
+      Number.isInteger(focusedIndex) &&
+      focusedIndex >= 0 &&
+      focusedIndex < total
+    ) {
+      return focusedIndex;
+    }
+
+    const firstSelectedIndex = selectedIndexes.find(
+      (selectedIndex) =>
+        Number.isInteger(selectedIndex) &&
+        selectedIndex >= 0 &&
+        selectedIndex < total,
+    );
+
+    return firstSelectedIndex ?? 0;
+  }, [choiceFocusIndex]);
+
+  const handleChoiceFocus = useCallback((questionKey, index) => {
+    setChoiceFocusIndex((prev) => {
+      if (prev[questionKey] === index) return prev;
+      return { ...prev, [questionKey]: index };
+    });
+  }, []);
+
+  const handleChoiceKeyDown = useCallback((questionKey, index, total, event) => {
+    let nextIndex = null;
+
+    switch (event.key) {
+      case "ArrowDown":
+      case "ArrowRight":
+        nextIndex = (index + 1) % total;
+        break;
+      case "ArrowUp":
+      case "ArrowLeft":
+        nextIndex = (index - 1 + total) % total;
+        break;
+      case "Home":
+        nextIndex = 0;
+        break;
+      case "End":
+        nextIndex = total - 1;
+        break;
+      default:
+        return;
+    }
+
+    event.preventDefault();
+    setChoiceFocusIndex((prev) => ({ ...prev, [questionKey]: nextIndex }));
+
+    const group = event.currentTarget.parentElement;
+    const choices = group
+      ? Array.from(
+          group.querySelectorAll(
+            'button[type="button"], [role="checkbox"], [role="radio"]',
+          ),
+        )
+      : [];
+
+    const nextChoice = choices[nextIndex];
+    if (nextChoice && typeof nextChoice.focus === "function") {
+      nextChoice.focus();
+    }
+  }, []);
+
   const renderMCQ = (question, index) => {
     const canAutoAdvance = question.choices.length <= 3 || question.key === "exercise" || question.key === "referral_source";
     const mcqOtherSelected = answers[question.key] === "Other" && question.choices.includes("Other");
+    const selectedIndex = question.choices.indexOf(answers[question.key]);
+    const activeIndex = getChoiceActiveIndex(
+      question.key,
+      question.choices.length,
+      [selectedIndex],
+    );
 
     return (
       <div>
@@ -881,11 +1026,23 @@ const SurveyQuestions = () => {
               <button
                 key={i}
                 type="button"
-                ref={i === 0 ? setPrimaryFocus : null}
+                ref={i === activeIndex ? setPrimaryFocus : null}
                 className={`sq-mcq-card${selected ? " sq-mcq-card--selected" : ""}`}
                 style={{ animationDelay: `${i * 50}ms` }}
+                tabIndex={i === activeIndex ? 0 : -1}
+                data-primary-focus={i === activeIndex ? "true" : undefined}
+                onFocus={() => handleChoiceFocus(question.key, i)}
+                onKeyDown={(event) =>
+                  handleChoiceKeyDown(
+                    question.key,
+                    i,
+                    question.choices.length,
+                    event,
+                  )
+                }
                 onClick={() => {
                   handleAnswer(question.key, choice);
+                  handleChoiceFocus(question.key, i);
                   const newAnswers = { ...answers, [question.key]: choice };
 
                   if (question.key === "age_over_18" && choice === "No") {
@@ -948,6 +1105,16 @@ const SurveyQuestions = () => {
       ? answers[question.key]
       : [];
     const otherSelected = currentValues.includes("Other");
+    const selectedIndexes = question.choices
+      .map((choice, choiceIndex) =>
+        currentValues.includes(choice) ? choiceIndex : -1,
+      )
+      .filter((choiceIndex) => choiceIndex >= 0);
+    const activeIndex = getChoiceActiveIndex(
+      question.key,
+      question.choices.length,
+      selectedIndexes,
+    );
 
     const autoAdvanceKeys = [];
     const canChipAutoAdvance = autoAdvanceKeys.includes(question.key);
@@ -964,10 +1131,22 @@ const SurveyQuestions = () => {
               <button
                 key={i}
                 type="button"
-                ref={i === 0 ? setPrimaryFocus : null}
+                ref={i === activeIndex ? setPrimaryFocus : null}
                 className={`sq-chip${isSelected ? " sq-chip--selected" : ""}`}
                 style={{ animationDelay: `${i * 30}ms` }}
+                tabIndex={i === activeIndex ? 0 : -1}
+                data-primary-focus={i === activeIndex ? "true" : undefined}
+                onFocus={() => handleChoiceFocus(question.key, i)}
+                onKeyDown={(event) =>
+                  handleChoiceKeyDown(
+                    question.key,
+                    i,
+                    question.choices.length,
+                    event,
+                  )
+                }
                 onClick={() => {
+                  handleChoiceFocus(question.key, i);
                   if (isOther) {
                     if (isSelected) {
                       handleAnswer(
@@ -1321,14 +1500,26 @@ const SurveyQuestions = () => {
           <div className="sq-consent-list">
           {consentStatements.map((statement, i) => {
             const checked = consentChecked[i] || false;
+            const activeIndex = getChoiceActiveIndex(
+              "consent_provided",
+              consentStatements.length,
+              consentChecked
+                .map((isChecked, checkedIndex) => (isChecked ? checkedIndex : -1))
+                .filter((checkedIndex) => checkedIndex >= 0),
+            );
 
             return (
               <div
                 key={i}
-                ref={i === 0 ? setPrimaryFocus : null}
+                ref={i === activeIndex ? setPrimaryFocus : null}
                 className="sq-consent-row"
-                tabIndex={0}
+                tabIndex={i === activeIndex ? 0 : -1}
+                data-primary-focus={i === activeIndex ? "true" : undefined}
+                role="checkbox"
+                aria-checked={checked}
+                onFocus={() => handleChoiceFocus("consent_provided", i)}
                 onClick={() => {
+                  handleChoiceFocus("consent_provided", i);
                   const updated = consentStatements.map((_, idx) =>
                     idx === i
                       ? !consentChecked[idx]
@@ -1337,7 +1528,25 @@ const SurveyQuestions = () => {
                   setConsentChecked(updated);
                 }}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
+                  if (["ArrowDown", "ArrowRight", "ArrowUp", "ArrowLeft", "Home", "End"].includes(e.key)) {
+                    handleChoiceKeyDown(
+                      "consent_provided",
+                      i,
+                      consentStatements.length,
+                      e,
+                    );
+                    return;
+                  }
+                  if (e.key === "Enter") {
+                    if (!allConsentChecked || surveyLoading) {
+                      return;
+                    }
+
+                    e.preventDefault();
+                    handleSubmit();
+                    return;
+                  }
+                  if (e.key === " ") {
                     e.preventDefault();
                     const updated = consentStatements.map((_, idx) =>
                       idx === i
@@ -1637,19 +1846,29 @@ const SurveyQuestions = () => {
         <div className="sq-footer">
           {showConsentStep ? (
             <>
-              <div />
+              <div>
+                {allConsentChecked && !surveyLoading && (
+                  <div className="sq-enter-hint">
+                    Press <kbd className="sq-kbd">Enter ↵</kbd>
+                  </div>
+                )}
+              </div>
               <button
                 type="button"
+                ref={continueButtonRef}
                 className="sq-continue-btn"
                 onClick={handleSubmit}
+                onKeyDown={(event) => handleFooterKeyDown(event, "continue")}
                 disabled={!allConsentChecked || surveyLoading}
               >
                 {surveyLoading ? "Submitting…" : "Submit"}
               </button>
               <button
                 type="button"
+                ref={backButtonRef}
                 className="sq-back-btn"
                 onClick={() => setShowConsentStep(false)}
+                onKeyDown={(event) => handleFooterKeyDown(event, "back")}
               >
                 <BackArrow />
               </button>
@@ -1666,18 +1885,22 @@ const SurveyQuestions = () => {
 
               <button
                 type="button"
+                ref={continueButtonRef}
                 className="sq-continue-btn"
                 onClick={handleNext}
+                onKeyDown={(event) => handleFooterKeyDown(event, "continue")}
                 disabled={!answered}
               >
                 Continue
               </button>
               <button
                 type="button"
+                ref={backButtonRef}
                 className={`sq-back-btn${
                   currentVisibleIndex === 0 ? " sq-back-btn--hidden" : ""
                 }`}
                 onClick={handlePrevious}
+                onKeyDown={(event) => handleFooterKeyDown(event, "back")}
               >
                 <BackArrow />
               </button>

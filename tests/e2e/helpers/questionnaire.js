@@ -10,68 +10,77 @@ const NO_TEXT = "No";
 export const treatmentCases = [
   {
     slug: "anti-ageing",
+    id: 1,
     question:
       "Why are you seeking support with Anti-Ageing & Vitality? (Select all that apply)",
     answer: "Fatigue / low energy / burnout",
   },
   {
     slug: "cognitive-health",
+    id: 9,
     question:
       "Why are you seeking support with Cognitive Health & Performance? (Select all that apply)",
     answer: "Focus and concentration difficulties / ADHD-like symptoms",
   },
   {
     slug: "gut-health-immunity",
+    id: 8,
     question:
       "Why are you seeking support with Gut Health & Immunity? (Select all that apply)",
     answer: "Gut barrier issues / bloating / food sensitivities / IBS",
   },
   {
     slug: "injury-repair-recovery",
+    id: 4,
     question:
       "Why are you seeking support with Injury Repair & Recovery? (Select all that apply)",
     answer: "Acute soft-tissue injury (muscle strain, ligament sprain)",
   },
   {
     slug: "muscle-strength-support",
+    id: 3,
     question:
       "Why are you seeking support with Muscle Strength & Building? (Select all that apply)",
     answer: "Muscle loss / difficulty maintaining muscle",
   },
   {
     slug: "sexual-health-libido",
+    id: 5,
     question:
       "Why are you seeking support with Sexual Health? (Select all that apply)",
     answer: "Erectile dysfunction (situational or persistent)",
   },
   {
     slug: "skin-care",
+    id: 10,
     question:
       "Why are you seeking support with Skin Care? (Select all that apply)",
     answer: "Anti-ageing / fine lines / wrinkles / skin laxity",
   },
   {
     slug: "weight-loss",
+    id: 2,
     question:
       "Why are you seeking support with Weight Loss & Weight Management? (Select all that apply)",
     answer: "Primary obesity / BMI 30+ (or 27+ with comorbidity)",
   },
   {
     slug: "womens-health",
+    id: 7,
     question:
       "Why are you seeking support with Women's Health? (Select all that apply)",
     answer: "Perimenopause symptoms (hot flushes, night sweats, mood)",
   },
 ];
 
-export async function setTreatmentConfig(page, slug) {
-  await page.addInitScript((treatmentSlug) => {
+export async function setTreatmentConfig(page, slug, id = "") {
+  await page.addInitScript(({ treatmentSlug, treatmentId }) => {
     window.SURVEY_CONFIG = {
-      treatmentPlanName: treatmentSlug,
-      treatmentPlanId: "1",
+      treatmentName: treatmentSlug,
+      treatmentId: String(treatmentId),
       medicareCardImageUrl: "",
     };
-  }, slug);
+  }, { treatmentSlug: slug, treatmentId: id });
 }
 
 export async function chooseOption(page, optionText) {

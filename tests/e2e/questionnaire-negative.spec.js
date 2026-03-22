@@ -8,7 +8,7 @@ import {
 } from "./helpers/questionnaire";
 
 test.beforeEach(async ({ page }) => {
-  await setTreatmentConfig(page, "weight-loss");
+  await setTreatmentConfig(page, "weight-loss", 2);
   await page.goto("/");
   await startAssessment(page);
 });

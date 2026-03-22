@@ -194,9 +194,12 @@
 }
 
 .sq-mcq-card {
+  -webkit-appearance: none;
+  appearance: none;
   display: flex;
   align-items: center;
   gap: 14px;
+  box-sizing: border-box;
   padding: 16px;
   border-radius: 16px;
   border: 2px solid var(--primed-color-fog, #E5ECEC) !important;
@@ -207,6 +210,7 @@
   font-family: inherit;
   font-size: 16px;
   font-weight: 500;
+  line-height: 1.35;
   color: var(--primed-color-text, #131313);
   text-align: left;
   width: 100%;
@@ -266,9 +270,12 @@
 }
 
 .sq-chip {
+  -webkit-appearance: none;
+  appearance: none;
   display: inline-flex;
   align-items: center;
   gap: 10px;
+  box-sizing: border-box;
   padding: 12px 18px;
   border-radius: 12px;
   border: 2px solid var(--primed-color-fog, #E5ECEC) !important;
@@ -279,6 +286,7 @@
   font-family: inherit;
   font-size: 15px;
   font-weight: 500;
+  line-height: 1.35;
   color: var(--primed-color-text, #131313);
 }
 
@@ -491,7 +499,8 @@ input[type="date"].sq-input::-webkit-date-and-time-value {
 .sq-medicare-checkbox-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 14px;
+  padding-left: 4px;
 }
 
 .sq-medicare-checkbox-group {
@@ -508,6 +517,7 @@ input[type="date"].sq-input::-webkit-date-and-time-value {
 }
 
 .sq-medicare-checkbox-row label {
+  margin-left: 4px;
   font-size: 14px;
   color: var(--primed-color-text, #131313);
   cursor: pointer;
@@ -543,10 +553,11 @@ input[type="date"].sq-input::-webkit-date-and-time-value {
 }
 
 .sq-consent-row {
+  position: relative;
   display: flex;
   align-items: flex-start;
   gap: 14px;
-  padding: 20px 0;
+  padding: 20px 16px;
   border-bottom: 1px solid var(--primed-color-fog, #E5ECEC);
   cursor: pointer;
 }
@@ -556,8 +567,7 @@ input[type="date"].sq-input::-webkit-date-and-time-value {
 }
 
 .sq-consent-row:focus-visible {
-  outline: 2px solid var(--primed-color-focus, #43a6aa);
-  outline-offset: 4px;
+  box-shadow: inset 0 0 0 2px var(--primed-color-focus, #43a6aa);
   border-radius: 12px;
 }
 
