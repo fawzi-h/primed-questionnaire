@@ -1,5 +1,5 @@
 import React from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useSurveyConfig } from "../SurveyConfig";
 
 const DEBUG = false;
@@ -12,6 +12,7 @@ const debug = (...args) => {
 
 const Questionnaire = ({ onStartQuiz }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { treatmentName, id } = useParams();
   const { submitBtnClass } = useSurveyConfig();
 
@@ -28,7 +29,7 @@ const Questionnaire = ({ onStartQuiz }) => {
     navigate(
       `/questionnaire/${encodeURIComponent(
         treatmentName,
-      )}/${encodeURIComponent(id)}/start-quiz`,
+      )}/${encodeURIComponent(id)}/start-quiz${location.search}`,
     );
   };
 

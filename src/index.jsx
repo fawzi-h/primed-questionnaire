@@ -68,13 +68,14 @@ function buildInitialEntry() {
   const { config, d } = readConfig();
   const treatmentId = config.treatmentId || d.treatmentId || "";
   const treatmentName = config.treatmentName || d.treatmentName || "";
+  const search = window.location.search || "";
 
   // If a treatment plan is pre-set via data-* attributes or window.SURVEY_CONFIG,
   // skip TreatmentSelection and go directly to the assessment welcome screen.
   if (!treatmentName) {
-    return "/questionnaire";
+    return `/questionnaire${search}`;
   }
-  return `/questionnaire/${treatmentName}/${treatmentId}`;
+  return `/questionnaire/${treatmentName}/${treatmentId}${search}`;
 }
 
 function buildClassConfig() {

@@ -6,6 +6,7 @@ import {
   completeSharedQuestions,
   expectQuestion,
   GOOGLE_BING_TEXT,
+  seedTreatmentQuestionState,
   setTreatmentConfig,
   startAssessment,
   treatmentCases,
@@ -40,9 +41,12 @@ test("completes a full happy path and submits successfully", async ({ page }) =>
 
   await expectQuestion(
     page,
-    "Why are you seeking support with Weight Loss & Weight Management? (Select all that apply)",
+    "Why are you seeking support with Weight Loss & Management? (Select all that apply)",
   );
-  await chooseOption(page, "Primary obesity / BMI 30+ (or 27+ with comorbidity)");
+  await chooseOption(
+    page,
+    "Primary obesity / BMI ≥30 (or ≥27 with comorbidity) / lifestyle alone insufficient",
+  );
   await clickContinue(page);
 
   await expectQuestion(page, "How did you hear about Primed?");
@@ -55,12 +59,10 @@ for (const treatmentCase of treatmentCases) {
   test(`shows the ${treatmentCase.slug} treatment-specific question`, async ({
     page,
   }) => {
-    await setTreatmentConfig(page, treatmentCase.slug, treatmentCase.id);
+    const token = await seedTreatmentQuestionState(page, treatmentCase);
 
-    await page.goto("/");
+    await page.goto(`/?token=${token}`);
     await startAssessment(page);
-
-    await completeSharedQuestions(page);
 
     await expectQuestion(page, treatmentCase.question);
     await chooseOption(page, treatmentCase.answer);

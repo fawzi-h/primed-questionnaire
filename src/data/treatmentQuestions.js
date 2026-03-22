@@ -1,7 +1,7 @@
 // Treatment slug -> question key mapping
 export const TREATMENT_QUESTION_MAP = {
   "anti-ageing": "anti-ageing-vitality",
-  "cognitive-health": "cognitive-health",
+  "cognitive-health": "cognitive-health-performance",
   "gut-health-immunity": "gut-health-immunity",
   "injury-repair-recovery": "injury-repair-recovery",
   "muscle-strength-support": "muscle-strength-building",

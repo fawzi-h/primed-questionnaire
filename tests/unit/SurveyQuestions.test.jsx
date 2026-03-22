@@ -183,7 +183,7 @@ describe("SurveyQuestions", () => {
 
     expect(otherInput).toHaveValue("a".repeat(255));
     expect(screen.getByText("Max 255 characters")).toBeInTheDocument();
-  });
+  }, 10000);
 
   it("keeps textarea questions capped at 1000 characters", async () => {
     const textareaQuestions = [

@@ -17,7 +17,7 @@ const LOCAL_STORAGE_KEY = "primed_survey";
 const OTHER_TEXT_MAX_LENGTH = 255;
 const TREATMENT_QUESTION_KEYS = [
   "anti-ageing-vitality",
-  "cognitive-health",
+  "cognitive-health-performance",
   "gut-health-immunity",
   "injury-repair-recovery",
   "muscle-strength-building",
